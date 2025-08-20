@@ -33,34 +33,47 @@ struct PresentationWindowView: View {
     let onClose: () -> Void
     let titleFont: String?
     let bodyFont: String?
+    // Add custom color support
+    let titleColor: Color?
+    let bodyColor: Color?
+    let backgroundColor: Color?
     
     @ObservedObject var stateManager: PresentationStateManager
     @State private var showControls: Bool = false
     
-    // Update init to accept fonts
+    // Update init to accept fonts and colors
     init(slides: [String], 
          theme: SlideTheme, 
          onClose: @escaping () -> Void, 
          stateManager: PresentationStateManager,
          titleFont: String? = nil,
-         bodyFont: String? = nil) {
+         bodyFont: String? = nil,
+         titleColor: Color? = nil,
+         bodyColor: Color? = nil,
+         backgroundColor: Color? = nil) {
         self.slides = slides
         self.theme = theme
         self.onClose = onClose
         self.stateManager = stateManager
         self.titleFont = titleFont
         self.bodyFont = bodyFont
+        self.titleColor = titleColor
+        self.bodyColor = bodyColor
+        self.backgroundColor = backgroundColor
     }
     
     var body: some View {
         ZStack {
-            // Pass selected fonts to SlideRenderView
+            // Pass selected fonts and colors to SlideRenderView
             SlideRenderView(
                 content: slides.indices.contains(stateManager.currentSlideIndex) ? slides[stateManager.currentSlideIndex] : "",
                 theme: theme,
                 showDecorations: false,
                 titleFont: titleFont,
-                bodyFont: bodyFont
+                bodyFont: bodyFont,
+                titleColor: titleColor,
+                bodyColor: bodyColor,
+                backgroundColor: backgroundColor
             )
             
             // Navigation controls (only shown when hovering)
@@ -108,7 +121,7 @@ struct PresentationWindowView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.backgroundView)
+        .background(backgroundColor != nil ? AnyView(backgroundColor!) : theme.backgroundView)
         .onAppear {
             stateManager.onSlideChange?(stateManager.currentSlideIndex)
         }
@@ -136,6 +149,9 @@ class PresentationWindowManager {
         selectedTheme: SlideTheme,
         titleFont: String? = nil,
         bodyFont: String? = nil,
+        titleColor: Color? = nil,
+        bodyColor: Color? = nil,
+        backgroundColor: Color? = nil,
         onClose: @escaping () -> Void
     ) {
         // Create window with 16:9 aspect ratio
@@ -170,7 +186,10 @@ class PresentationWindowManager {
             onClose: onClose,
             stateManager: stateManager,
             titleFont: titleFont,
-            bodyFont: bodyFont
+            bodyFont: bodyFont,
+            titleColor: titleColor,
+            bodyColor: bodyColor,
+            backgroundColor: backgroundColor
         )
         
         // Set up the window to maintain aspect ratio
@@ -232,7 +251,7 @@ class PresentationWindowManager {
         self.stateManager = stateManager
     }
     
-    func closeWindow() {
+    func closePresentationWindow() {
         presentationWindow?.close()
         presentationWindow = nil
         windowController = nil

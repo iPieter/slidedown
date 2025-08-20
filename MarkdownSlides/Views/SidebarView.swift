@@ -19,68 +19,55 @@ struct SidebarView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Top toolbar section
+            // Top control section
             HStack {
-                Spacer()
-                
-                // Preview on button
-                Text("Preview on")
-                    .font(.system(size: 12))
-                
-                Picker("", selection: .constant("Desktop")) {
-                    Text("Desktop").tag("Desktop")
-                    Text("Mobile").tag("Mobile")
+                Button(action: {
+                    addNewSlide()
+                }) {
+                    Label("", systemImage: "plus")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 12))
                 }
-                .pickerStyle(MenuPickerStyle())
-                .frame(width: 100)
+                .buttonStyle(.borderless)
+                .help("Add New Slide")
+                
+                Spacer()
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
-            .background(Color.secondary.opacity(0.05))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color(.controlBackgroundColor).opacity(0.5))
             
             Divider()
             
-            // Main sidebar with two tabs: Slides and Settings
-            TabView {
-                // Slides tab
-                VStack {
-                    // Slide list with improved styling
-                    List(selection: $selectedSlideIndex) {
-                        ForEach(Array(slides.enumerated()), id: \.offset) { index, slideContent in
-                            SlideListItemView(index: index, slideContent: slideContent, selectedTheme: selectedTheme, selectedTitleFont: selectedTitleFont, selectedBodyFont: selectedBodyFont)
-                                .tag(index)
-                                .padding(.vertical, 4)
+            // Slides list
+            List(selection: $selectedSlideIndex) {
+                ForEach(Array(slides.enumerated()), id: \.offset) { index, slideContent in
+                    SlideListItemView(
+                        index: index, 
+                        slideContent: slideContent, 
+                        selectedTheme: selectedTheme, 
+                        selectedTitleFont: selectedTitleFont, 
+                        selectedBodyFont: selectedBodyFont,
+                        titleColor: titleColor,
+                        bodyColor: bodyColor,
+                        backgroundColor: backgroundColor
+                    )
+                    .tag(index)
+                    .contextMenu {
+                        Button("Duplicate Slide") {
+                            // Duplicate slide functionality
+                        }
+                        Divider()
+                        Button("Delete Slide", role: .destructive) {
+                            // Delete slide functionality
                         }
                     }
-                    .listStyle(PlainListStyle())
-                    
-                    
                 }
-                .tabItem {
-                    Label("Slides", systemImage: "rectangle.on.rectangle")
-                }
-                .padding(.top, 4)
-                
-                // Theme Settings tab with all global settings
-                ScrollView {
-                    ThemeSettingsView(
-                        selectedTheme: $selectedTheme,
-                        isFontsExpanded: $isFontsExpanded,
-                        isThemeExpanded: $isThemeExpanded,
-                        isColorsExpanded: $isColorsExpanded,
-                        isAppearanceExpanded: $isAppearanceExpanded,
-                        selectedTitleFont: $selectedTitleFont,
-                        selectedBodyFont: $selectedBodyFont,
-                        titleColor: $titleColor,
-                        bodyColor: $bodyColor,
-                        backgroundColor: $backgroundColor,
-                        appearance: $appearance
-                    )
-                }
-                .tabItem {
-                    Label("Theme", systemImage: "paintbrush")
+                .onMove { indices, newOffset in
+                    // Move functionality
                 }
             }
+            .listStyle(.sidebar)
         }
     }
     
@@ -100,27 +87,34 @@ struct SlideListItemView: View {
     let selectedTheme: SlideTheme
     let selectedTitleFont: String
     let selectedBodyFont: String
+    let titleColor: Color
+    let bodyColor: Color
+    let backgroundColor: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("\(index + 1)")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.secondary)
+                    .frame(width: 22, alignment: .center)
+                    .background(Color(.controlBackgroundColor))
+                    .cornerRadius(4)
                 
                 if let title = slideContent.firstMarkdownHeading(level: 1) {
                     Text(title)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.headline)
                         .lineLimit(1)
                 } else if let title = slideContent.firstMarkdownHeading(level: 2) {
                     Text(title)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                         .lineLimit(1)
                 } else {
-                    Text("Slide \(index + 1)")
-                        .font(.system(size: 12, weight: .medium))
-                        .lineLimit(1)
+                    Text("Untitled Slide")
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
             }
             
@@ -128,10 +122,14 @@ struct SlideListItemView: View {
                 content: slideContent, 
                 theme: selectedTheme, 
                 titleFont: selectedTitleFont, 
-                bodyFont: selectedBodyFont
+                bodyFont: selectedBodyFont,
+                titleColor: titleColor,
+                bodyColor: bodyColor,
+                backgroundColor: backgroundColor
             )
-            .frame(height: 100)
-            .cornerRadius(6)
+            .frame(height: 90)
+            .cornerRadius(4)
         }
+        .padding(.vertical, 2)
     }
 } 

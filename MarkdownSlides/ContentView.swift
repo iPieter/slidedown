@@ -6,19 +6,22 @@ struct ContentView: View {
     @State private var selectedSlideIndex: Int = 0
     @State private var selectedTheme: SlideTheme = .light
     @State private var isPresentationMode: Bool = false
-    @State private var showThemeSelector: Bool = false
+    @State private var showThemeSettings: Bool = false
     @State private var appearance: AppAppearance = .dark
-    @State private var selectedTitleFont: String = "SF Pro Text"
-    @State private var selectedBodyFont: String = "Inter — Template Default"
+    @State private var selectedTitleFont: String = "SF Pro Display"
+    @State private var selectedBodyFont: String = "SF Pro Text"
     @State private var titleColor: Color = .black
     @State private var bodyColor: Color = .black
     @State private var backgroundColor: Color = .white
     
-    // Add state variables to track disclosure group expansion states
+    // State variables for disclosure groups
     @State private var isFontsExpanded: Bool = true
     @State private var isThemeExpanded: Bool = false
     @State private var isColorsExpanded: Bool = false
     @State private var isAppearanceExpanded: Bool = false
+    
+    // For theme popover positioning
+    @State private var themeButtonFrame: CGRect = .zero
     
     private let presentationManager = PresentationWindowManager()
     
@@ -27,90 +30,149 @@ struct ContentView: View {
     }
     
     var body: some View {
-        HSplitView {
-            // Left sidebar
-            SidebarView(
-                markdownDocument: $markdownDocument,
-                selectedSlideIndex: $selectedSlideIndex,
-                selectedTheme: $selectedTheme,
-                isFontsExpanded: $isFontsExpanded,
-                isThemeExpanded: $isThemeExpanded,
-                isColorsExpanded: $isColorsExpanded,
-                isAppearanceExpanded: $isAppearanceExpanded,
-                selectedTitleFont: $selectedTitleFont,
-                selectedBodyFont: $selectedBodyFont,
-                titleColor: $titleColor,
-                bodyColor: $bodyColor,
-                backgroundColor: $backgroundColor,
-                appearance: $appearance,
-                slides: slides
-            )
-            .frame(minWidth: 240, maxWidth: 300)
-            
-            // Main editor area
-            EditorView(
-                markdownDocument: $markdownDocument,
-                selectedSlideIndex: selectedSlideIndex,
-                slides: slides
-            )
-        }
-        // Create Mac-native toolbar
-        .toolbar {
-            // Play/Present Button
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: { openPresentationWindow() }) {
-                    Label("Present", systemImage: "play.fill")
-                }
-                .help("Start Presentation")
-            }
-            
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: { addNewSlide() }) {
-                    Label("Add Slide", systemImage: "plus")
-                }
-                .help("Add new slide")
-            }
-            
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: { savePresentation() }) {
-                    Label("Save", systemImage: "square.and.arrow.down")
-                }
-                .help("Save presentation")
-            }
-            
-            // Format Group
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button(action: { insertMarkdownFormatting(type: "bold") }) {
-                    Image(systemName: "bold")
-                }
-                .help("Bold")
+        ZStack(alignment: .topTrailing) {
+            // Main content
+            HSplitView {
+                // Left sidebar
+                SidebarView(
+                    markdownDocument: $markdownDocument,
+                    selectedSlideIndex: $selectedSlideIndex,
+                    selectedTheme: $selectedTheme,
+                    isFontsExpanded: $isFontsExpanded,
+                    isThemeExpanded: $isThemeExpanded,
+                    isColorsExpanded: $isColorsExpanded,
+                    isAppearanceExpanded: $isAppearanceExpanded,
+                    selectedTitleFont: $selectedTitleFont,
+                    selectedBodyFont: $selectedBodyFont,
+                    titleColor: $titleColor,
+                    bodyColor: $bodyColor,
+                    backgroundColor: $backgroundColor,
+                    appearance: $appearance,
+                    slides: slides
+                )
+                .frame(minWidth: 200, idealWidth: 240, maxWidth: 280)
                 
-                Button(action: { insertMarkdownFormatting(type: "italic") }) {
-                    Image(systemName: "italic")
+                // Main editor area with preview
+                VStack(spacing: 0) {
+                    // Editor
+                    EditorView(
+                        markdownDocument: $markdownDocument,
+                        selectedSlideIndex: selectedSlideIndex,
+                        slides: slides
+                    )
                 }
-                .help("Italic")
-                
-                Button(action: { insertMarkdownFormatting(type: "list.bullet") }) {
-                    Image(systemName: "list.bullet")
-                }
-                .help("Bullet List")
-                
-                Button(action: { insertMarkdownFormatting(type: "list.number") }) {
-                    Image(systemName: "list.number")
-                }
-                .help("Numbered List")
             }
             
-            // Theme Selector
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Picker("Theme", selection: $selectedTheme) {
-                        ForEach(SlideTheme.allCases) { theme in
-                            Text(theme.rawValue).tag(theme)
+            // Theme settings popdown overlay - with better alignment and native styling
+            if showThemeSettings {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header with close button
+                    HStack {
+                        Text("Theme Settings")
+                            .font(.system(size: 13, weight: .medium))
+                        
+                        Spacer()
+                        
+                        Button {
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                showThemeSettings = false
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                                .font(.system(size: 14))
                         }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 12)
+                    .padding(.horizontal, 12)
+                    
+                    Divider()
+                        .padding(.top, 8)
+                    
+                    // Theme settings content with better padding
+                    ScrollView {
+                        ThemeSettingsView(
+                            selectedTheme: $selectedTheme,
+                            isFontsExpanded: $isFontsExpanded,
+                            isThemeExpanded: $isThemeExpanded,
+                            isColorsExpanded: $isColorsExpanded,
+                            isAppearanceExpanded: $isAppearanceExpanded,
+                            selectedTitleFont: $selectedTitleFont,
+                            selectedBodyFont: $selectedBodyFont,
+                            titleColor: $titleColor,
+                            bodyColor: $bodyColor,
+                            backgroundColor: $backgroundColor,
+                            appearance: $appearance
+                        )
+                        .padding(.top, 8)
+                    }
+                    .padding([.horizontal, .bottom], 12)
+                }
+                .frame(width: 280)
+                .background(
+                    // More native-looking background
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(.windowBackgroundColor))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(.separatorColor), lineWidth: 0.5)
+                        )
+                )
+                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                .offset(x: -12, y: 40) // Better alignment with toolbar button
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .zIndex(100)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    addNewSlide()
+                } label: {
+                    Label("Add Slide", systemImage: "plus.square")
+                }
+            }
+            
+            ToolbarItemGroup(placement: .automatic) {
+                Button {
+                    if selectedSlideIndex > 0 {
+                        selectedSlideIndex -= 1
+                    }
+                } label: {
+                    Label("Previous Slide", systemImage: "chevron.up")
+                }
+                .disabled(selectedSlideIndex <= 0)
+                
+                Button {
+                    if selectedSlideIndex < slides.count - 1 {
+                        selectedSlideIndex += 1
+                    }
+                } label: {
+                    Label("Next Slide", systemImage: "chevron.down")
+                }
+                .disabled(selectedSlideIndex >= slides.count - 1)
+            }
+            
+            // Theme settings button in toolbar
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    // Faster animation
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        showThemeSettings.toggle()
                     }
                 } label: {
                     Label("Theme", systemImage: "paintbrush")
+                }
+                .help("Theme Settings")
+                .foregroundColor(showThemeSettings ? .accentColor : .primary)
+            }
+            
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    openPresentationWindow()
+                } label: {
+                    Label(isPresentationMode ? "End Presentation" : "Start Presentation", systemImage: isPresentationMode ? "xmark.rectangle" : "play.rectangle")
                 }
             }
         }
@@ -157,36 +219,25 @@ struct ContentView: View {
         }
     }
     
-    private func savePresentation() {
-        let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [.plainText]
-        savePanel.nameFieldStringValue = "presentation.md"
-        savePanel.title = "Save Presentation"
-        savePanel.message = "Choose a location to save your presentation"
-        savePanel.canCreateDirectories = true
-        
-        savePanel.begin { response in
-            if response == .OK, let url = savePanel.url {
-                do {
-                    try markdownDocument.write(to: url, atomically: true, encoding: .utf8)
-                } catch {
-                    // Show error dialog in a real app
-                    print("Failed to save: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
-    
     private func openPresentationWindow() {
-        presentationManager.openPresentationWindow(
-            slides: slides,
-            selectedSlideIndex: selectedSlideIndex,
-            selectedTheme: selectedTheme,
-            titleFont: selectedTitleFont,
-            bodyFont: selectedBodyFont,
-            onClose: {
-                // Handle any cleanup needed when the presentation window closes
-            }
-        )
+        isPresentationMode.toggle()
+        
+        if isPresentationMode {
+            presentationManager.openPresentationWindow(
+                slides: slides,
+                selectedSlideIndex: selectedSlideIndex,
+                selectedTheme: selectedTheme,
+                titleFont: selectedTitleFont,
+                bodyFont: selectedBodyFont,
+                titleColor: titleColor,
+                bodyColor: bodyColor,
+                backgroundColor: backgroundColor,
+                onClose: {
+                    isPresentationMode = false
+                }
+            )
+        } else {
+            presentationManager.closePresentationWindow()
+        }
     }
 } 

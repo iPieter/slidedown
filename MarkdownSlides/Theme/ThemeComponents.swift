@@ -7,23 +7,25 @@ struct ThemePreviewView: View {
     var body: some View {
         HStack(spacing: 10) {
             // Color swatch
-            Rectangle()
+            RoundedRectangle(cornerRadius: 3)
                 .fill(theme.backgroundColor)
                 .frame(width: 36, height: 24)
                 .overlay(
-                    Rectangle()
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 3)
+                        .stroke(Color(.separatorColor), lineWidth: 1)
                 )
+                .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
             
             // Theme name
             Text(theme.rawValue)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
             
             Spacer()
             
             if isSelected {
                 Image(systemName: "checkmark")
                     .foregroundColor(.accentColor)
+                    .font(.system(size: 11, weight: .bold))
             }
         }
         .padding(.vertical, 4)
@@ -38,17 +40,46 @@ struct ColorPickerRow: View {
     @Binding var color: Color
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Text(title)
-                .font(.system(size: 12))
-                .frame(width: 80, alignment: .leading)
+                .font(.system(size: 13))
+                .foregroundColor(.primary)
             
             Spacer()
             
             ColorPicker("", selection: $color)
                 .labelsHidden()
+                .scaleEffect(0.9)
+                .frame(width: 28, height: 28)
         }
-        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+    }
+}
+
+struct FontPickerRow: View {
+    let title: String
+    @Binding var selectedFont: String
+    let fonts: [String]
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 13))
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Picker("", selection: $selectedFont) {
+                ForEach(fonts, id: \.self) { font in
+                    Text(font)
+                        .font(.system(size: 13))
+                        .tag(font)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(width: 160)
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -65,150 +96,164 @@ struct ThemeSettingsView: View {
     @Binding var backgroundColor: Color
     @Binding var appearance: AppAppearance
     
+    // Available fonts
+    private let titleFonts = ["SF Pro Display", "SF Pro Text", "Helvetica Neue", "Georgia", "Avenir", "Futura"]
+    private let bodyFonts = ["SF Pro Text", "Inter — Template Default", "Helvetica Neue", "Georgia", "Avenir", "Times"]
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Theme section
-            DisclosureGroup("Theme", isExpanded: $isThemeExpanded) {
-                VStack(spacing: 8) {
-                    Picker("", selection: $selectedTheme) {
-                        ForEach(SlideTheme.allCases) { theme in
-                            Text(theme.rawValue).tag(theme)
+        VStack(alignment: .leading, spacing: 0) {
+            // Theme selector grid
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Theme")
+                    .font(.headline)
+                    .padding(.bottom, 4)
+                
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach(SlideTheme.allCases) { theme in
+                        ThemeButton(theme: theme, isSelected: theme == selectedTheme) {
+                            selectedTheme = theme
+                            // Update colors to match theme
+                            titleColor = theme.titleColor
+                            bodyColor = theme.foregroundColor
+                            backgroundColor = theme.backgroundColor
                         }
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    .labelsHidden()
-                    
-                    // Preview of selected theme
-                    Rectangle()
-                        .fill(selectedTheme.backgroundColor)
-                        .frame(height: 24)
-                        .overlay(
-                            Text("Theme Preview")
-                                .font(.system(size: 12))
-                                .foregroundColor(selectedTheme.foregroundColor)
-                        )
-                        .cornerRadius(4)
                 }
-                .padding(.top, 4)
             }
-            .padding(.horizontal, 12)
+            .padding([.horizontal, .bottom])
             
             Divider()
+                .padding(.vertical, 8)
             
-            // Fonts section
-            DisclosureGroup("Fonts", isExpanded: $isFontsExpanded) {
-                VStack(spacing: 8) {
-                    // Title font
-                    HStack {
-                        Text("Title Font")
-                            .font(.system(size: 12, weight: .medium))
-                        
-                        Spacer()
-                        
-                        Picker("", selection: $selectedTitleFont) {
-                            Text("SF Pro Text").tag("SF Pro Text")
-                            Text("Fira Sans").tag("Fira Sans")
-                            Text("Helvetica Neue").tag("Helvetica Neue")
-                            Text("Georgia").tag("Georgia")
-                            Text("Avenir").tag("Avenir")
-                            Text("Futura").tag("Futura")
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .frame(width: 150)
-                    }
+            // Font selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Typography")
+                    .font(.headline)
+                    .padding(.bottom, 4)
+                
+                FontPickerRow(title: "Title Font", selectedFont: $selectedTitleFont, fonts: titleFonts)
+                FontPickerRow(title: "Body Font", selectedFont: $selectedBodyFont, fonts: bodyFonts)
+                
+                // Font preview
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Title Preview")
+                        .font(Font.custom(selectedTitleFont, size: 14, relativeTo: .headline))
+                        .fontWeight(.semibold)
+                        .foregroundColor(titleColor)
                     
-                    // Body font
-                    HStack {
-                        Text("Body Font")
-                            .font(.system(size: 12, weight: .medium))
-                        
-                        Spacer()
-                        
-                        Picker("", selection: $selectedBodyFont) {
-                            Text("Inter — Template Default").tag("Inter — Template Default")
-                            Text("Fira Sans").tag("Fira Sans")
-                            Text("SF Pro Text").tag("SF Pro Text")
-                            Text("Helvetica Neue").tag("Helvetica Neue")
-                            Text("Georgia").tag("Georgia")
-                            Text("Avenir").tag("Avenir")
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .frame(width: 150)
-                    }
+                    Text("Body text preview with the selected font")
+                        .font(Font.custom(selectedBodyFont.replacingOccurrences(of: " — Template Default", with: ""), size: 12))
+                        .foregroundColor(bodyColor)
+                        .lineLimit(1)
                 }
-                .padding(.top, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(backgroundColor)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color(.separatorColor), lineWidth: 1)
+                )
             }
-            .padding(.horizontal, 12)
+            .padding([.horizontal, .bottom])
             
             Divider()
+                .padding(.vertical, 8)
             
-            // Colors section
-            DisclosureGroup("Colors", isExpanded: $isColorsExpanded) {
-                VStack(alignment: .leading, spacing: 8) {
-                    // Color selectors for titles, body, background
-                    ColorPickerRow(title: "Titles", color: $titleColor)
-                    ColorPickerRow(title: "Body", color: $bodyColor)
-                    ColorPickerRow(title: "Background", color: $backgroundColor)
-                    
-                    // Reset colors button
-                    Button("Reset Colors...") {
-                        // Reset to theme defaults
-                        titleColor = selectedTheme.titleColor
-                        bodyColor = selectedTheme.foregroundColor
-                        backgroundColor = selectedTheme.backgroundColor
-                    }
-                    .font(.system(size: 12))
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 4)
+            // Colors
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Colors")
+                    .font(.headline)
+                    .padding(.bottom, 4)
+                
+                ColorPickerRow(title: "Title Color", color: $titleColor)
+                ColorPickerRow(title: "Body Color", color: $bodyColor)
+                ColorPickerRow(title: "Background", color: $backgroundColor)
+                
+                // Reset colors button
+                Button("Reset to Theme Defaults") {
+                    titleColor = selectedTheme.titleColor
+                    bodyColor = selectedTheme.foregroundColor
+                    backgroundColor = selectedTheme.backgroundColor
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 4)
             }
-            .padding(.horizontal, 12)
+            .padding([.horizontal, .bottom])
             
             Divider()
+                .padding(.vertical, 8)
             
-            // Appearance section
-            DisclosureGroup("Appearance", isExpanded: $isAppearanceExpanded) {
+            // App appearance
+            VStack(alignment: .leading, spacing: 8) {
+                Text("App Settings")
+                    .font(.headline)
+                    .padding(.bottom, 4)
+                
                 HStack {
-                    Text("Mode")
-                        .font(.system(size: 12, weight: .medium))
+                    Text("App Appearance")
+                        .font(.system(size: 13))
                     
                     Spacer()
                     
-                    HStack(spacing: 2) {
-                        Button {
-                            appearance = .light
-                        } label: {
-                            Text("Light")
-                                .font(.system(size: 12))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(appearance == .light ? Color.accentColor : Color.clear)
-                                .foregroundColor(appearance == .light ? .white : .primary)
-                                .cornerRadius(4)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button {
-                            appearance = .dark
-                        } label: {
-                            Text("Dark")
-                                .font(.system(size: 12))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(appearance == .dark ? Color.accentColor : Color.clear)
-                                .foregroundColor(appearance == .dark ? .white : .primary)
-                                .cornerRadius(4)
-                        }
-                        .buttonStyle(.plain)
+                    Picker("", selection: $appearance) {
+                        Text("Light").tag(AppAppearance.light)
+                        Text("Dark").tag(AppAppearance.dark)
                     }
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(6)
+                    .pickerStyle(.segmented)
+                    .frame(width: 120)
                 }
-                .padding(.top, 4)
             }
-            .padding(.horizontal, 12)
+            .padding([.horizontal, .bottom])
         }
         .padding(.vertical, 8)
+    }
+}
+
+// Helper components
+struct SectionHeader: View {
+    let title: String
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.primary)
+            
+            Spacer()
+        }
+    }
+}
+
+struct ThemeButton: View {
+    let theme: SlideTheme
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                // Theme color preview
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(theme.backgroundColor)
+                    .frame(height: 24)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(isSelected ? Color.accentColor : Color(.separatorColor), lineWidth: isSelected ? 2 : 1)
+                    )
+                
+                // Theme name
+                Text(theme.rawValue)
+                    .font(.system(size: 11))
+                    .lineLimit(1)
+                    .foregroundColor(isSelected ? .accentColor : .primary)
+            }
+            .padding(4)
+        }
+        .buttonStyle(.plain)
+        .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+        .cornerRadius(6)
     }
 } 
