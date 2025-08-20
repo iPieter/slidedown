@@ -1,0 +1,241 @@
+import SwiftUI
+
+// State manager class to handle external state changes
+class PresentationStateManager: ObservableObject {
+    @Published var currentSlideIndex: Int
+    private let slideCount: Int
+    var onSlideChange: ((Int) -> Void)?
+    
+    init(initialSlideIndex: Int, slideCount: Int) {
+        self.currentSlideIndex = initialSlideIndex
+        self.slideCount = slideCount
+    }
+    
+    func nextSlide() {
+        if currentSlideIndex < slideCount - 1 {
+            currentSlideIndex += 1
+            onSlideChange?(currentSlideIndex)
+        }
+    }
+    
+    func previousSlide() {
+        if currentSlideIndex > 0 {
+            currentSlideIndex -= 1
+            onSlideChange?(currentSlideIndex)
+        }
+    }
+}
+
+// Updated presentation window view with improved controls
+struct PresentationWindowView: View {
+    let slides: [String]
+    let theme: SlideTheme
+    let onClose: () -> Void
+    let titleFont: String?
+    let bodyFont: String?
+    
+    @ObservedObject var stateManager: PresentationStateManager
+    @State private var showControls: Bool = false
+    
+    // Update init to accept fonts
+    init(slides: [String], 
+         theme: SlideTheme, 
+         onClose: @escaping () -> Void, 
+         stateManager: PresentationStateManager,
+         titleFont: String? = nil,
+         bodyFont: String? = nil) {
+        self.slides = slides
+        self.theme = theme
+        self.onClose = onClose
+        self.stateManager = stateManager
+        self.titleFont = titleFont
+        self.bodyFont = bodyFont
+    }
+    
+    var body: some View {
+        ZStack {
+            // Pass selected fonts to SlideRenderView
+            SlideRenderView(
+                content: slides.indices.contains(stateManager.currentSlideIndex) ? slides[stateManager.currentSlideIndex] : "",
+                theme: theme,
+                showDecorations: false,
+                titleFont: titleFont,
+                bodyFont: bodyFont
+            )
+            
+            // Navigation controls (only shown when hovering)
+            if showControls {
+                VStack {
+                    Spacer()
+                    
+                    HStack {
+                        Button(action: { stateManager.previousSlide() }) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        // Slide counter
+                        Text("\(stateManager.currentSlideIndex + 1) / \(slides.count)")
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.black.opacity(0.6))
+                            .foregroundColor(.white)
+                            .cornerRadius(16)
+                        
+                        Spacer()
+                        
+                        Button(action: { stateManager.nextSlide() }) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 20)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.backgroundView)
+        .onAppear {
+            stateManager.onSlideChange?(stateManager.currentSlideIndex)
+        }
+        .onDisappear { 
+            onClose() 
+        }
+        .onTapGesture { stateManager.nextSlide() }
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showControls = hovering
+            }
+        }
+    }
+}
+
+// A class to manage presentation windows
+class PresentationWindowManager {
+    private var presentationWindow: NSWindow?
+    private var windowController: NSWindowController?
+    private var stateManager: PresentationStateManager?
+    
+    func openPresentationWindow(
+        slides: [String],
+        selectedSlideIndex: Int,
+        selectedTheme: SlideTheme,
+        titleFont: String? = nil,
+        bodyFont: String? = nil,
+        onClose: @escaping () -> Void
+    ) {
+        // Create window with 16:9 aspect ratio
+        let width: CGFloat = 1280
+        let height: CGFloat = width * 9/16  // Maintain 16:9 aspect ratio
+        
+        let presentationWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        presentationWindow.center()
+        presentationWindow.title = "Slide Presentation"
+        presentationWindow.isReleasedWhenClosed = false
+        presentationWindow.titlebarAppearsTransparent = true
+        
+        // Optional: make the title only visible on hover
+        let windowController = NSWindowController(window: presentationWindow)
+        windowController.windowFrameAutosaveName = "PresentationWindow"
+        
+        // Create a StateManager to handle state changes from outside SwiftUI
+        let stateManager = PresentationStateManager(
+            initialSlideIndex: selectedSlideIndex,
+            slideCount: slides.count
+        )
+        
+        // Configure the presentation content
+        let presentationView = PresentationWindowView(
+            slides: slides,
+            theme: selectedTheme,
+            onClose: onClose,
+            stateManager: stateManager,
+            titleFont: titleFont,
+            bodyFont: bodyFont
+        )
+        
+        // Set up the window to maintain aspect ratio
+        let hostingView = NSHostingView(rootView: presentationView)
+        presentationWindow.contentView = hostingView
+        presentationWindow.contentAspectRatio = NSSize(width: 16, height: 9)
+        
+        // Add window close notification handler
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: presentationWindow, queue: nil) { _ in
+            onClose()
+        }
+        
+        // Add global key monitor
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard presentationWindow.isKeyWindow else { return event }
+            
+            switch event.keyCode {
+            case 53: // Escape key
+                presentationWindow.close()
+                onClose()
+                return nil
+            case 123: // Left arrow
+                stateManager.previousSlide()
+                return nil
+            case 124: // Right arrow
+                stateManager.nextSlide()
+                return nil
+            case 49: // Space bar
+                stateManager.nextSlide()
+                return nil
+            default:
+                return event
+            }
+        }
+        
+        // Add mouse tracking for title bar visibility
+        NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: presentationWindow, queue: nil) { _ in
+            // Update window title to include slide info when the window becomes key
+            presentationWindow.title = "Slide \(stateManager.currentSlideIndex + 1) of \(slides.count)"
+        }
+        
+        // Update title when slide changes
+        stateManager.onSlideChange = { index in
+            presentationWindow.title = "Slide \(index + 1) of \(slides.count)"
+            
+            // Get the title from the slide content if possible
+            if slides.indices.contains(index) {
+                if let slideTitle = slides[index].firstMarkdownHeading(level: 1) {
+                    presentationWindow.title = "\(slideTitle) (\(index + 1)/\(slides.count))"
+                }
+            }
+        }
+        
+        presentationWindow.makeKeyAndOrderFront(nil)
+        
+        // Store references
+        self.presentationWindow = presentationWindow
+        self.windowController = windowController
+        self.stateManager = stateManager
+    }
+    
+    func closeWindow() {
+        presentationWindow?.close()
+        presentationWindow = nil
+        windowController = nil
+        stateManager = nil
+    }
+} 

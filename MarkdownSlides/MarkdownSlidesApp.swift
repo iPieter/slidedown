@@ -1,10 +1,3 @@
-//
-//  MarkdownSlidesApp.swift
-//  MarkdownSlides
-//
-//  Created by Pieter Delobelle on 30/04/2025.
-//
-
 import SwiftUI
 
 @main
@@ -12,6 +5,9 @@ struct MarkdownSlidesApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .frame(minWidth: 800, minHeight: 600)
         }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
     }
 }
