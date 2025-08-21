@@ -95,6 +95,9 @@ struct ThemeSettingsView: View {
     @Binding var bodyColor: Color
     @Binding var backgroundColor: Color
     @Binding var appearance: AppAppearance
+    @Binding var showFooter: Bool
+    @Binding var presentationTitle: String
+    @Binding var logoImage: NSImage?
     
     // Available fonts
     private let titleFonts = ["SF Pro Display", "SF Pro Text", "Helvetica Neue", "Georgia", "Avenir", "Futura"]
@@ -119,6 +122,63 @@ struct ThemeSettingsView: View {
                         }
                     }
                 }
+            }
+            .padding([.horizontal, .bottom])
+            
+            Divider()
+                .padding(.vertical, 8)
+            
+            // Footer Settings
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Footer")
+                    .font(.headline)
+                    .padding(.bottom, 4)
+                
+                Toggle(isOn: $showFooter) {
+                    Text("Show Footer")
+                        .font(.system(size: 13))
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Presentation Title", text: $presentationTitle)
+                        .font(.system(size: 13))
+                        .textFieldStyle(.roundedBorder)
+                    
+                    HStack {
+                        Text("Logo")
+                            .font(.system(size: 13))
+                        
+                        Spacer()
+                        
+                        Button("Choose Logo") {
+                            selectLogo()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        if logoImage != nil {
+                            Button("Clear") {
+                                logoImage = nil
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundColor(.red)
+                            .controlSize(.small)
+                        }
+                    }
+                    
+                    // Logo preview
+                    if let logo = logoImage {
+                        Image(nsImage: logo)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 40)
+                            .padding(4)
+                            .background(Color(.textBackgroundColor))
+                            .cornerRadius(4)
+                    }
+                }
+                .disabled(!showFooter)
+                .opacity(showFooter ? 1.0 : 0.6)
             }
             .padding([.horizontal, .bottom])
             
@@ -209,6 +269,30 @@ struct ThemeSettingsView: View {
             .padding([.horizontal, .bottom])
         }
         .padding(.vertical, 8)
+    }
+    
+    private func selectLogo() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.image]
+        
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                if let image = NSImage(contentsOf: url) {
+                    logoImage = image
+                    
+                    // Also save the logo for the current theme
+                    SlideTheme.setThemeLogo(image, for: selectedTheme)
+                    
+                    // If there's a presentation title, save it for the theme too
+                    if !presentationTitle.isEmpty {
+                        SlideTheme.setThemeTitle(presentationTitle, for: selectedTheme)
+                    }
+                }
+            }
+        }
     }
 }
 

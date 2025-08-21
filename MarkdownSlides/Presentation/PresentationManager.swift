@@ -37,6 +37,10 @@ struct PresentationWindowView: View {
     let titleColor: Color?
     let bodyColor: Color?
     let backgroundColor: Color?
+    // Add footer support
+    let showFooter: Bool
+    let presentationTitle: String?
+    let logoImage: NSImage?
     
     @ObservedObject var stateManager: PresentationStateManager
     @State private var showControls: Bool = false
@@ -50,7 +54,10 @@ struct PresentationWindowView: View {
          bodyFont: String? = nil,
          titleColor: Color? = nil,
          bodyColor: Color? = nil,
-         backgroundColor: Color? = nil) {
+         backgroundColor: Color? = nil,
+         showFooter: Bool = false,
+         presentationTitle: String? = nil,
+         logoImage: NSImage? = nil) {
         self.slides = slides
         self.theme = theme
         self.onClose = onClose
@@ -60,6 +67,9 @@ struct PresentationWindowView: View {
         self.titleColor = titleColor
         self.bodyColor = bodyColor
         self.backgroundColor = backgroundColor
+        self.showFooter = showFooter
+        self.presentationTitle = presentationTitle
+        self.logoImage = logoImage
     }
     
     var body: some View {
@@ -73,7 +83,12 @@ struct PresentationWindowView: View {
                 bodyFont: bodyFont,
                 titleColor: titleColor,
                 bodyColor: bodyColor,
-                backgroundColor: backgroundColor
+                backgroundColor: backgroundColor,
+                slideNumber: stateManager.currentSlideIndex + 1,
+                totalSlides: slides.count,
+                presentationTitle: presentationTitle,
+                logoImage: logoImage,
+                showFooter: showFooter
             )
             
             // Navigation controls (only shown when hovering)
@@ -152,6 +167,9 @@ class PresentationWindowManager {
         titleColor: Color? = nil,
         bodyColor: Color? = nil,
         backgroundColor: Color? = nil,
+        showFooter: Bool = false,
+        presentationTitle: String? = nil,
+        logoImage: NSImage? = nil,
         onClose: @escaping () -> Void
     ) {
         // Create window with 16:9 aspect ratio
@@ -189,7 +207,10 @@ class PresentationWindowManager {
             bodyFont: bodyFont,
             titleColor: titleColor,
             bodyColor: bodyColor,
-            backgroundColor: backgroundColor
+            backgroundColor: backgroundColor,
+            showFooter: showFooter,
+            presentationTitle: presentationTitle,
+            logoImage: logoImage
         )
         
         // Set up the window to maintain aspect ratio

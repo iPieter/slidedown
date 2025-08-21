@@ -28,6 +28,13 @@ struct SlideRenderView: View {
     var customBodyColor: Color?
     var customBackgroundColor: Color?
     
+    // Add footer elements
+    var slideNumber: Int?
+    var totalSlides: Int?
+    var presentationTitle: String?
+    var logoImage: NSImage?
+    var showFooter: Bool = false
+    
     // Computed properties to determine which colors to use
     private var effectiveTitleColor: Color {
         customTitleColor ?? theme.titleColor
@@ -43,6 +50,25 @@ struct SlideRenderView: View {
         } else {
             return theme.backgroundView
         }
+    }
+    
+    // Use theme-specific logo if not explicitly provided
+    private var effectiveLogoImage: NSImage? {
+        logoImage ?? theme.getThemeLogo()
+    }
+    
+    // Use theme-specific presentation title if not explicitly provided
+    private var effectivePresentationTitle: String {
+        if let title = presentationTitle, !title.isEmpty {
+            return title
+        } else {
+            return theme.getThemeTitle()
+        }
+    }
+    
+    // Whether to show the footer
+    private var shouldShowFooter: Bool {
+        showFooter || (slideNumber != nil && (effectiveLogoImage != nil || !effectivePresentationTitle.isEmpty))
     }
     
     // Determine slide layout based on content
@@ -90,7 +116,7 @@ struct SlideRenderView: View {
         return .standard
     }
     
-    init(content: String, theme: SlideTheme, showDecorations: Bool = true, titleFont: String? = nil, bodyFont: String? = nil, titleColor: Color? = nil, bodyColor: Color? = nil, backgroundColor: Color? = nil) {
+    init(content: String, theme: SlideTheme, showDecorations: Bool = true, titleFont: String? = nil, bodyFont: String? = nil, titleColor: Color? = nil, bodyColor: Color? = nil, backgroundColor: Color? = nil, slideNumber: Int? = nil, totalSlides: Int? = nil, presentationTitle: String? = nil, logoImage: NSImage? = nil, showFooter: Bool = false) {
         self.content = content
         self.theme = theme
         self.showDecorations = showDecorations
@@ -103,6 +129,11 @@ struct SlideRenderView: View {
         self.customTitleColor = titleColor
         self.customBodyColor = bodyColor
         self.customBackgroundColor = backgroundColor
+        self.slideNumber = slideNumber
+        self.totalSlides = totalSlides
+        self.presentationTitle = presentationTitle
+        self.logoImage = logoImage
+        self.showFooter = showFooter
     }
     
     var body: some View {
@@ -113,26 +144,34 @@ struct SlideRenderView: View {
                 // Use effective background
                 effectiveBackgroundView
                 
-                // Select appropriate layout based on content
-                Group {
-                    switch slideLayout {
-                    case .titleOnly:
-                        titleOnlyLayout
-                    case .titleSubtitle:
-                        titleSubtitleLayout
-                    case .singleImage:
-                        singleImageLayout
-                    case .doubleImage:
-                        doubleImageLayout
-                    case .gridImages:
-                        gridImagesLayout
-                    case .quote:
-                        quoteLayout
-                    case .standard:
-                        standardLayout
+                VStack(spacing: 0) {
+                    // Select appropriate layout based on content
+                    Group {
+                        switch slideLayout {
+                        case .titleOnly:
+                            titleOnlyLayout
+                        case .titleSubtitle:
+                            titleSubtitleLayout
+                        case .singleImage:
+                            singleImageLayout
+                        case .doubleImage:
+                            doubleImageLayout
+                        case .gridImages:
+                            gridImagesLayout
+                        case .quote:
+                            quoteLayout
+                        case .standard:
+                            standardLayout
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.bottom, shouldShowFooter ? 5 : 0)
+                    
+                    // Footer with slide number, presentation title, and logo
+                    if shouldShowFooter {
+                        footerView
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(width: Self.baseWidth, height: Self.baseHeight)
             .clipShape(RoundedRectangle(cornerRadius: showDecorations ? 8 : 0))
@@ -152,6 +191,57 @@ struct SlideRenderView: View {
             .animation(.easeInOut(duration: 0.2), value: showDecorations)
         }
         .aspectRatio(16/9, contentMode: .fit)
+    }
+    
+    // MARK: - Footer View
+    
+    private var footerView: some View {
+        HStack(alignment: .center) {
+            // Logo on the left
+            if let logo = effectiveLogoImage {
+                Image(nsImage: logo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 16)
+            } else {
+                // Placeholder for when no logo is provided
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(width: 20, height: 16)
+            }
+            
+            Spacer()
+            
+            // Presentation title and slide number on the right
+            HStack(spacing: 4) {
+                if !effectivePresentationTitle.isEmpty {
+                    Text(effectivePresentationTitle)
+                        .font(Font.custom(bodyFont, size: 8))
+                        .foregroundColor(effectiveBodyColor.opacity(0.7))
+                }
+                
+                if !effectivePresentationTitle.isEmpty && slideNumber != nil {
+                    Text("—")
+                        .font(Font.custom(bodyFont, size: 8))
+                        .foregroundColor(effectiveBodyColor.opacity(0.7))
+                }
+                
+                if let number = slideNumber {
+                    Text("\(number)")
+                        .font(Font.custom(bodyFont, size: 8))
+                        .foregroundColor(effectiveBodyColor.opacity(0.7))
+                    
+                    if let total = totalSlides {
+                        Text("/\(total)")
+                            .font(Font.custom(bodyFont, size: 8))
+                            .foregroundColor(effectiveBodyColor.opacity(0.5))
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .frame(height: 20)
     }
     
     // MARK: - Layout Views
@@ -605,6 +695,11 @@ struct SlidePreviewView: View {
     var titleColor: Color?
     var bodyColor: Color?
     var backgroundColor: Color?
+    var slideNumber: Int?
+    var totalSlides: Int?
+    var presentationTitle: String?
+    var logoImage: NSImage?
+    var showFooter: Bool = false
     
     var body: some View {
         SlideRenderView(
@@ -614,7 +709,12 @@ struct SlidePreviewView: View {
             bodyFont: bodyFont,
             titleColor: titleColor,
             bodyColor: bodyColor,
-            backgroundColor: backgroundColor
+            backgroundColor: backgroundColor,
+            slideNumber: slideNumber,
+            totalSlides: totalSlides,
+            presentationTitle: presentationTitle,
+            logoImage: logoImage,
+            showFooter: showFooter
         )
         .frame(height: 90)
     }

@@ -2,7 +2,7 @@ import SwiftUI
 import Down
 
 struct ContentView: View {
-    @State private var markdownDocument: String = "# Welcome\n\nThis is my first slide\n\n___\n\n# Second Slide\n\nContent for the second slide."
+    @State private var markdownDocument: String = "# Welcome\n\nThis is my first slide\n\n___\n\n# Second Slide\n\nContent for the second slide.\n___\n# A giraffe!\n![Image](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F304%2F879%2Fnon_2x%2Fgiraffe-in-kruger-national-park-south-africa-giraffa-camelopardalis-family-of-giraffidae-portrait-photo.JPG&f=1&nofb=1&ipt=0759ac375ce03c7b58117ab735fb63a6d32eac57f6f515d62198a5182106e01c)"
     @State private var selectedSlideIndex: Int = 0
     @State private var selectedTheme: SlideTheme = .light
     @State private var isPresentationMode: Bool = false
@@ -13,6 +13,9 @@ struct ContentView: View {
     @State private var titleColor: Color = .black
     @State private var bodyColor: Color = .black
     @State private var backgroundColor: Color = .white
+    @State private var showFooter: Bool = false
+    @State private var presentationTitle: String = ""
+    @State private var logoImage: NSImage?
     
     // State variables for disclosure groups
     @State private var isFontsExpanded: Bool = true
@@ -48,6 +51,9 @@ struct ContentView: View {
                     bodyColor: $bodyColor,
                     backgroundColor: $backgroundColor,
                     appearance: $appearance,
+                    showFooter: $showFooter,
+                    presentationTitle: $presentationTitle,
+                    logoImage: $logoImage,
                     slides: slides
                 )
                 .frame(minWidth: 200, idealWidth: 240, maxWidth: 280)
@@ -103,7 +109,10 @@ struct ContentView: View {
                             titleColor: $titleColor,
                             bodyColor: $bodyColor,
                             backgroundColor: $backgroundColor,
-                            appearance: $appearance
+                            appearance: $appearance,
+                            showFooter: $showFooter,
+                            presentationTitle: $presentationTitle,
+                            logoImage: $logoImage
                         )
                         .padding(.top, 8)
                     }
@@ -232,6 +241,9 @@ struct ContentView: View {
                 titleColor: titleColor,
                 bodyColor: bodyColor,
                 backgroundColor: backgroundColor,
+                showFooter: showFooter,
+                presentationTitle: presentationTitle,
+                logoImage: logoImage,
                 onClose: {
                     isPresentationMode = false
                 }

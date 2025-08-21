@@ -14,6 +14,9 @@ struct SidebarView: View {
     @Binding var bodyColor: Color
     @Binding var backgroundColor: Color
     @Binding var appearance: AppAppearance
+    @Binding var showFooter: Bool
+    @Binding var presentationTitle: String
+    @Binding var logoImage: NSImage?
     
     var slides: [String]
     
@@ -50,7 +53,10 @@ struct SidebarView: View {
                         selectedBodyFont: selectedBodyFont,
                         titleColor: titleColor,
                         bodyColor: bodyColor,
-                        backgroundColor: backgroundColor
+                        backgroundColor: backgroundColor,
+                        showFooter: showFooter,
+                        presentationTitle: presentationTitle,
+                        logoImage: logoImage
                     )
                     .tag(index)
                     .contextMenu {
@@ -90,6 +96,9 @@ struct SlideListItemView: View {
     let titleColor: Color
     let bodyColor: Color
     let backgroundColor: Color
+    let showFooter: Bool
+    let presentationTitle: String
+    let logoImage: NSImage?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -125,7 +134,12 @@ struct SlideListItemView: View {
                 bodyFont: selectedBodyFont,
                 titleColor: titleColor,
                 bodyColor: bodyColor,
-                backgroundColor: backgroundColor
+                backgroundColor: backgroundColor,
+                slideNumber: index + 1,
+                totalSlides: 0,  // Set to actual count in the parent view
+                presentationTitle: presentationTitle,
+                logoImage: logoImage,
+                showFooter: showFooter
             )
             .frame(height: 90)
             .cornerRadius(4)

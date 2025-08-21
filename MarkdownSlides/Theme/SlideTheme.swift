@@ -17,6 +17,36 @@ enum SlideTheme: String, CaseIterable, Identifiable {
     
     var id: String { rawValue }
     
+    // Theme configuration properties
+    private static var themeLogos: [SlideTheme: NSImage?] = [:]
+    private static var themeTitles: [SlideTheme: String] = [:]
+    
+    // Getters and setters for theme logo
+    func getThemeLogo() -> NSImage? {
+        return SlideTheme.themeLogos[self] ?? nil
+    }
+    
+    static func setThemeLogo(_ logo: NSImage?, for theme: SlideTheme) {
+        themeLogos[theme] = logo
+    }
+    
+    // Getters and setters for theme presentation title
+    func getThemeTitle() -> String {
+        return SlideTheme.themeTitles[self] ?? ""
+    }
+    
+    static func setThemeTitle(_ title: String, for theme: SlideTheme) {
+        themeTitles[theme] = title
+    }
+    
+    // Default function to set presentation settings for all themes
+    static func setDefaultPresentationSettings(title: String, logo: NSImage?) {
+        for theme in SlideTheme.allCases {
+            themeTitles[theme] = title
+            themeLogos[theme] = logo
+        }
+    }
+    
     // Updated colors to match modern aesthetic
     var backgroundColor: Color {
         switch self {
@@ -52,6 +82,18 @@ enum SlideTheme: String, CaseIterable, Identifiable {
         case .sanFrancisco: return Color(red: 0.0, green: 0.40, blue: 0.90)
         case .la: return Color(red: 0.90, green: 0.30, blue: 0.60)
         default: return foregroundColor
+        }
+    }
+    
+    // Add footer color for styling the footer
+    var footerColor: Color {
+        switch self {
+        case .newYork, .dark: 
+            return Color.black.opacity(0.5)
+        case .sanFrancisco, .zurich, .paris, .milano, .tokyo, .vancouver, .la, .copenhagen, .basel:
+            return backgroundColor.opacity(0.15)
+        case .light:
+            return Color(red: 0.92, green: 0.92, blue: 0.92)
         }
     }
     
