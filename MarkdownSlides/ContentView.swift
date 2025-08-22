@@ -26,6 +26,9 @@ struct ContentView: View {
     // For theme popover positioning
     @State private var themeButtonFrame: CGRect = .zero
     
+    // Extracted selectedTextRange from EditorView
+    @State private var selectedTextRange: NSRange?
+    
     private let presentationManager = PresentationWindowManager()
     
     var slides: [String] {
@@ -163,6 +166,78 @@ struct ContentView: View {
                 .disabled(selectedSlideIndex >= slides.count - 1)
             }
             
+            // Add text formatting toolbar group with improved styling
+            ToolbarItemGroup(placement: .automatic) {
+                Group {
+                    Button {
+                        performAfterDelay { insertMarkdownFormatting(type: "header") }
+                    } label: {
+                        Image(systemName: "textformat.size")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Heading")
+                    
+                    Button {
+                        performAfterDelay { insertMarkdownFormatting(type: "bold") }
+                    } label: {
+                        Image(systemName: "bold")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Bold")
+                    
+                    Button {
+                        performAfterDelay { insertMarkdownFormatting(type: "italic") }
+                    } label: {
+                        Image(systemName: "italic")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Italic")
+                }
+                .buttonStyle(.bordered)
+                
+                Divider()
+                
+                Group {
+                    Button {
+                        performAfterDelay { insertMarkdownFormatting(type: "list.bullet") }
+                    } label: {
+                        Image(systemName: "list.bullet")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Bullet List")
+                    
+                    Button {
+                        performAfterDelay { insertMarkdownFormatting(type: "list.number") }
+                    } label: {
+                        Image(systemName: "list.number")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Numbered List")
+                }
+                .buttonStyle(.bordered)
+                
+                Divider()
+                
+                Group {
+                    Button {
+                        performAfterDelay { insertMarkdownFormatting(type: "link") }
+                    } label: {
+                        Image(systemName: "link")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Insert Link")
+                    
+                    Button {
+                        performAfterDelay { insertMarkdownFormatting(type: "image") }
+                    } label: {
+                        Image(systemName: "photo")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Insert Image")
+                }
+                .buttonStyle(.bordered)
+            }
+            
             // Theme settings button in toolbar
             ToolbarItem(placement: .automatic) {
                 Button {
@@ -185,38 +260,146 @@ struct ContentView: View {
                 }
             }
         }
+        .onAppear {
+            // Setup notification observer for text selection
+            NotificationCenter.default.addObserver(
+                forName: NSTextView.didChangeSelectionNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let textView = notification.object as? NSTextView {
+                    selectedTextRange = textView.selectedRanges.first?.rangeValue
+                }
+            }
+        }
+        .onDisappear {
+            // Remove notification observer when view disappears
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSTextView.didChangeSelectionNotification,
+                object: nil
+            )
+        }
+    }
+    
+    // Helper method to ensure formatting is applied after button action completes
+    private func performAfterDelay(_ action: @escaping () -> Void) {
+        // A tiny delay to ensure the button action completes and focus is maintained
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            action()
+        }
     }
     
     // Helper methods
     private func insertMarkdownFormatting(type: String) {
-        // Get the NSTextView from the SwiftUI TextEditor
-        let textView = NSTextView.findFirstResponder() as? NSTextView
+        print("Attempting to format text with type: \(type)")
         
-        guard let selectedRange = textView?.selectedRanges.first?.rangeValue else {
+        // Directly try to find the NSTextView backing our TextEditor
+        guard let textView = findTextViewInWindow() else {
+            print("Could not find text view")
             return
         }
         
-        let selectedText = (markdownDocument as NSString).substring(with: selectedRange)
+        // Get the selected range and text
+        guard let selectedRange = textView.selectedRanges.first?.rangeValue else {
+            print("No selected range found")
+            return
+        }
+        
+        // Get the selected text and prepare the formatted version
+        let selectedText = (textView.string as NSString).substring(with: selectedRange)
+        print("Selected text: '\(selectedText)'")
+        
         var formattedText = ""
+        var newSelectedRange: NSRange?
         
         switch type {
+        case "header":
+            formattedText = "# \(selectedText)"
         case "bold":
             formattedText = "**\(selectedText)**"
+            if selectedText.isEmpty {
+                newSelectedRange = NSRange(location: selectedRange.location + 2, length: 0)
+            }
         case "italic":
             formattedText = "*\(selectedText)*"
+            if selectedText.isEmpty {
+                newSelectedRange = NSRange(location: selectedRange.location + 1, length: 0)
+            }
         case "list.bullet":
             let lines = selectedText.components(separatedBy: .newlines)
             formattedText = lines.map { "- \($0)" }.joined(separator: "\n")
         case "list.number":
             let lines = selectedText.components(separatedBy: .newlines)
             formattedText = lines.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+        case "link":
+            if selectedText.isEmpty {
+                formattedText = "[Link Text](https://example.com)"
+                newSelectedRange = NSRange(location: selectedRange.location + 1, length: 9) // Select "Link Text"
+            } else {
+                formattedText = "[\(selectedText)](https://example.com)"
+            }
+        case "image":
+            formattedText = "![Alt text](/assets/image.jpg)"
         default:
             return
         }
         
-        if let textView = textView {
-            textView.insertText(formattedText, replacementRange: selectedRange)
+        print("Formatted text: '\(formattedText)'")
+        
+        // This is the key part - we need to:
+        // 1. Insert the formatted text into the NSTextView directly
+        textView.insertText(formattedText, replacementRange: selectedRange)
+        
+        // 2. Position cursor inside formatting if needed
+        if let newRange = newSelectedRange {
+            textView.setSelectedRange(newRange)
         }
+        
+        // 3. Force update the binding to ensure the UI reflects the change
+        if let updatedString = textView.string as String? {
+            DispatchQueue.main.async {
+                self.markdownDocument = updatedString
+            }
+        }
+    }
+    
+    private func findActiveTextView() -> NSTextView? {
+        // First attempt: try to get the text view that's the first responder
+        if let textView = NSTextView.findFirstResponder() as? NSTextView {
+            return textView
+        }
+        
+        // Second attempt: find all text views in the window hierarchy
+        return findTextViewInWindow()
+    }
+    
+    private func findTextViewInWindow() -> NSTextView? {
+        guard let window = NSApplication.shared.keyWindow ?? NSApplication.shared.mainWindow else {
+            return nil
+        }
+        
+        // Find all NSTextViews in the window
+        let textViews = window.contentView?.findSubviews(ofType: NSTextView.self) ?? []
+        
+        if textViews.isEmpty {
+            print("No NSTextViews found in window hierarchy")
+            return nil
+        }
+        
+        // Debugging info
+        print("Found \(textViews.count) NSTextViews in window")
+        
+        // Try to find the specific NSTextView that's editing our markdown document
+        for textView in textViews {
+            // Check if this text view contains our markdown
+            if textView.string.contains(markdownDocument.prefix(50)) {
+                return textView
+            }
+        }
+        
+        // If we can't find an exact match, return the first one
+        return textViews.first
     }
     
     private func addNewSlide() {
@@ -251,5 +434,22 @@ struct ContentView: View {
         } else {
             presentationManager.closePresentationWindow()
         }
+    }
+}
+
+// Extension to find subviews of specific type
+extension NSView {
+    func findSubviews<T: NSView>(ofType type: T.Type) -> [T] {
+        var result = [T]()
+        
+        for subview in subviews {
+            if let typedSubview = subview as? T {
+                result.append(typedSubview)
+            }
+            
+            result.append(contentsOf: subview.findSubviews(ofType: type))
+        }
+        
+        return result
     }
 } 
