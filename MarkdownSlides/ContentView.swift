@@ -2,7 +2,7 @@ import SwiftUI
 import Down
 
 struct ContentView: View {
-    @State private var markdownDocument: String = "# Welcome\n\nThis is my first slide\n\n___\n\n# Second Slide\n\nContent for the second slide.\n___\n# A giraffe!\n![Image](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F304%2F879%2Fnon_2x%2Fgiraffe-in-kruger-national-park-south-africa-giraffa-camelopardalis-family-of-giraffidae-portrait-photo.JPG&f=1&nofb=1&ipt=0759ac375ce03c7b58117ab735fb63a6d32eac57f6f515d62198a5182106e01c)"
+    @State private var markdownDocument: String = "# Welcome\n## This is my first slide\n\n___\n\n# Second Slide\n\nContent for the second slide.\n___\n# A giraffe!\n![Image](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F304%2F879%2Fnon_2x%2Fgiraffe-in-kruger-national-park-south-africa-giraffa-camelopardalis-family-of-giraffidae-portrait-photo.JPG&f=1&nofb=1&ipt=0759ac375ce03c7b58117ab735fb63a6d32eac57f6f515d62198a5182106e01c)"
     @State private var selectedSlideIndex: Int = 0
     @State private var selectedTheme: SlideTheme = .light
     @State private var isPresentationMode: Bool = false

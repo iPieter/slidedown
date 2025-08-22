@@ -7,6 +7,7 @@ enum SlideLayout {
     case standard      // Default layout with title and content
     case titleOnly     // Only title, centered vertically
     case titleSubtitle // Title and subtitle only, centered
+    case titleSubtitleDate // Title, subtitle and current date
     case singleImage   // One centered image with optional caption
     case doubleImage   // Two images side by side
     case gridImages    // Multiple images in a grid
@@ -68,7 +69,11 @@ struct SlideRenderView: View {
     
     // Whether to show the footer
     private var shouldShowFooter: Bool {
-        showFooter || (slideNumber != nil && (effectiveLogoImage != nil || !effectivePresentationTitle.isEmpty))
+        // Don't show footer on titleSubtitleDate layout
+        if slideLayout == .titleSubtitleDate {
+            return false
+        }
+        return showFooter || (slideNumber != nil && (effectiveLogoImage != nil || !effectivePresentationTitle.isEmpty))
     }
     
     // Determine slide layout based on content
@@ -85,9 +90,8 @@ struct SlideRenderView: View {
         
         // Check for a title-subtitle only slide
         if title != nil && subtitle != nil && 
-           textContentWithoutImages.isEmpty && 
            images.isEmpty {
-            return .titleSubtitle
+            return .titleSubtitleDate
         }
         
         // Check for title-only slide
@@ -152,6 +156,8 @@ struct SlideRenderView: View {
                             titleOnlyLayout
                         case .titleSubtitle:
                             titleSubtitleLayout
+                        case .titleSubtitleDate:
+                            titleSubtitleDateLayout
                         case .singleImage:
                             singleImageLayout
                         case .doubleImage:
@@ -344,6 +350,55 @@ struct SlideRenderView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // Title, subtitle and date layout
+    private var titleSubtitleDateLayout: some View {
+        VStack(spacing: 60) {
+            if let title = content.firstMarkdownHeading(level: 1) {
+                Text(title)
+                    .font(Font.custom(titleFont, size: 150, relativeTo: .largeTitle).weight(theme.titleFontWeight))
+                    .foregroundColor(effectiveTitleColor)
+                    .lineSpacing(20)
+                    .tracking(-0.5)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 120)
+            }
+            
+            if let subtitle = content.firstMarkdownHeading(level: 2) {
+                Text(subtitle)
+                    .font(Font.custom(bodyFont, size: 90, relativeTo: .title2))
+                    .foregroundColor(effectiveBodyColor.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 150)
+                }
+            
+            // Current date with formatting
+            Text(Date(), style: .date)
+                .font(Font.custom(bodyFont, size: 60, relativeTo: .title3))
+                .foregroundColor(effectiveBodyColor.opacity(0.6))
+                .padding(.top, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(
+            Group {
+                if let logo = effectiveLogoImage {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Image(nsImage: logo)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 80)
+                                .padding(40)
+                        }
+                        Spacer()
+                    }
+                }
+            }
+        )
     }
     
     // Single image layout
