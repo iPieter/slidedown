@@ -17,8 +17,8 @@ enum SlideLayout {
 struct SlideRenderView: View {
     let content: String
     let theme: SlideTheme
-    static let baseWidth: CGFloat = 490
-    static let baseHeight: CGFloat = 270
+    static let baseWidth: CGFloat = 1920  // Updated to 1080p resolution
+    static let baseHeight: CGFloat = 1080  // Updated to 1080p resolution
     let showDecorations: Bool
     var titleFont: String = "SF Pro Display"  // Default font
     var bodyFont: String = "SF Pro Text"  // Default font
@@ -165,7 +165,7 @@ struct SlideRenderView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.bottom, shouldShowFooter ? 5 : 0)
+                    .padding(.bottom, shouldShowFooter ? 20 : 0)
                     
                     // Footer with slide number, presentation title, and logo
                     if shouldShowFooter {
@@ -174,17 +174,17 @@ struct SlideRenderView: View {
                 }
             }
             .frame(width: Self.baseWidth, height: Self.baseHeight)
-            .clipShape(RoundedRectangle(cornerRadius: showDecorations ? 8 : 0))
+            .clipShape(RoundedRectangle(cornerRadius: showDecorations ? 16 : 0))
             .overlay(
                 showDecorations ? 
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(theme.accentColor.opacity(0.3), lineWidth: 1) : nil
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(theme.accentColor.opacity(0.3), lineWidth: 2) : nil
             )
             .shadow(
                 color: showDecorations ? (theme == .dark || theme == .newYork ? .black.opacity(0.3) : .black.opacity(0.1)) : .clear, 
-                radius: showDecorations ? 5 : 0,
+                radius: showDecorations ? 12 : 0,
                 x: 0, 
-                y: showDecorations ? 2 : 0
+                y: showDecorations ? 5 : 0
             )
             .scaleEffect(scale)
             .frame(width: geo.size.width, height: geo.size.height)
@@ -202,46 +202,46 @@ struct SlideRenderView: View {
                 Image(nsImage: logo)
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 16)
+                    .frame(height: 40)
             } else {
                 // Placeholder for when no logo is provided
                 Rectangle()
                     .fill(Color.clear)
-                    .frame(width: 20, height: 16)
+                    .frame(width: 60, height: 40)
             }
             
             Spacer()
             
             // Presentation title and slide number on the right
-            HStack(spacing: 4) {
+            HStack(spacing: 8) {
                 if !effectivePresentationTitle.isEmpty {
                     Text(effectivePresentationTitle)
-                        .font(Font.custom(bodyFont, size: 8))
+                        .font(Font.custom(bodyFont, size: 24))
                         .foregroundColor(effectiveBodyColor.opacity(0.7))
                 }
                 
                 if !effectivePresentationTitle.isEmpty && slideNumber != nil {
                     Text("—")
-                        .font(Font.custom(bodyFont, size: 8))
+                        .font(Font.custom(bodyFont, size: 24))
                         .foregroundColor(effectiveBodyColor.opacity(0.7))
                 }
                 
                 if let number = slideNumber {
                     Text("\(number)")
-                        .font(Font.custom(bodyFont, size: 8))
+                        .font(Font.custom(bodyFont, size: 24))
                         .foregroundColor(effectiveBodyColor.opacity(0.7))
                     
                     if let total = totalSlides {
                         Text("/\(total)")
-                            .font(Font.custom(bodyFont, size: 8))
+                            .font(Font.custom(bodyFont, size: 24))
                             .foregroundColor(effectiveBodyColor.opacity(0.5))
                     }
                 }
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 4)
-        .frame(height: 20)
+        .padding(.horizontal, 40)
+        .padding(.vertical, 20)
+        .frame(height: 60)
     }
     
     // MARK: - Layout Views
@@ -252,19 +252,19 @@ struct SlideRenderView: View {
             // Title section
             if let title = content.firstMarkdownHeading(level: 1) {
                 Text(title)
-                    .font(Font.custom(titleFont, size: 36, relativeTo: .title).weight(theme.titleFontWeight))
+                    .font(Font.custom(titleFont, size: 96, relativeTo: .title).weight(theme.titleFontWeight))
                     .foregroundColor(effectiveTitleColor)
-                    .lineSpacing(8)
+                    .lineSpacing(16)
                     .tracking(-0.5)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 24)
-                    .padding(.top, 40)
-                    .padding(.horizontal, 40)
+                    .padding(.bottom, 60)
+                    .padding(.top, 100)
+                    .padding(.horizontal, 100)
             }
             
             // Body content with proper scrolling behavior
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 40) {
                     // Exclude the title from the content
                     let bodyContent = removeFirstHeading(from: content)
                     
@@ -280,9 +280,9 @@ struct SlideRenderView: View {
                         // Render text content
                         Text(AttributedString(styledText))
                             .font(Font.custom(bodyFont.replacingOccurrences(of: " — Template Default", with: ""), 
-                                             size: 24, relativeTo: .body))
+                                             size: 60, relativeTo: .body))
                             .foregroundColor(effectiveBodyColor)
-                            .lineSpacing(8)
+                            .lineSpacing(16)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                     }
@@ -290,13 +290,13 @@ struct SlideRenderView: View {
                     // Render images separately using the enhanced ImageContentView
                     ImageContentView(
                         markdown: bodyContent,
-                        maxImageHeight: 180,
+                        maxImageHeight: 720,
                         arrangement: .vertical
                     )
-                    .padding(.top, 8)
+                    .padding(.top, 20)
                 }
-                .padding(.horizontal, 40)
-                .padding(.bottom, 40)
+                .padding(.horizontal, 100)
+                .padding(.bottom, 80)
             }
             .scrollIndicators(showDecorations ? .visible : .hidden)
         }
@@ -308,13 +308,13 @@ struct SlideRenderView: View {
         VStack(spacing: 0) {
             if let title = content.firstMarkdownHeading(level: 1) {
                 Text(title)
-                    .font(Font.custom(titleFont, size: 60, relativeTo: .largeTitle).weight(theme.titleFontWeight))
+                    .font(Font.custom(titleFont, size: 150, relativeTo: .largeTitle).weight(theme.titleFontWeight))
                     .foregroundColor(effectiveTitleColor)
-                    .lineSpacing(8)
+                    .lineSpacing(20)
                     .tracking(-0.5)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 120)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -322,25 +322,25 @@ struct SlideRenderView: View {
     
     // Title and subtitle layout
     private var titleSubtitleLayout: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 60) {
             if let title = content.firstMarkdownHeading(level: 1) {
                 Text(title)
-                    .font(Font.custom(titleFont, size: 60, relativeTo: .largeTitle).weight(theme.titleFontWeight))
+                    .font(Font.custom(titleFont, size: 150, relativeTo: .largeTitle).weight(theme.titleFontWeight))
                     .foregroundColor(effectiveTitleColor)
-                    .lineSpacing(10)
+                    .lineSpacing(20)
                     .tracking(-0.5)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 120)
             }
             
             if let subtitle = content.firstMarkdownHeading(level: 2) {
                 Text(subtitle)
-                    .font(Font.custom(bodyFont, size: 36, relativeTo: .title2))
+                    .font(Font.custom(bodyFont, size: 90, relativeTo: .title2))
                     .foregroundColor(effectiveBodyColor.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 60)
+                    .padding(.horizontal, 150)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -348,16 +348,16 @@ struct SlideRenderView: View {
     
     // Single image layout
     private var singleImageLayout: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 40) {
             // Title if it exists
             if let title = content.firstMarkdownHeading(level: 1) {
                 Text(title)
-                    .font(Font.custom(titleFont, size: 36, relativeTo: .title).weight(theme.titleFontWeight))
+                    .font(Font.custom(titleFont, size: 96, relativeTo: .title).weight(theme.titleFontWeight))
                     .foregroundColor(effectiveTitleColor)
-                    .lineSpacing(8)
+                    .lineSpacing(16)
                     .tracking(-0.5)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 30)
+                    .padding(.top, 80)
             }
             
             // Single centered image
@@ -365,29 +365,29 @@ struct SlideRenderView: View {
             
             ImageContentView(
                 markdown: bodyContent,
-                maxImageHeight: 200,
+                maxImageHeight: 720,
                 maxCaptionLines: 0,
-                captionSize: 18,
+                captionSize: 36,
                 arrangement: .vertical
             )
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 100)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // Double image layout
     private var doubleImageLayout: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 40) {
             // Title if it exists
             if let title = content.firstMarkdownHeading(level: 1) {
                 Text(title)
-                    .font(Font.custom(titleFont, size: 36, relativeTo: .title).weight(theme.titleFontWeight))
+                    .font(Font.custom(titleFont, size: 96, relativeTo: .title).weight(theme.titleFontWeight))
                     .foregroundColor(effectiveTitleColor)
-                    .lineSpacing(8)
+                    .lineSpacing(16)
                     .tracking(-0.5)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 20)
-                    .padding(.bottom, 10)
+                    .padding(.top, 60)
+                    .padding(.bottom, 20)
             }
             
             // Two images side by side
@@ -395,28 +395,28 @@ struct SlideRenderView: View {
             
             ImageContentView(
                 markdown: bodyContent,
-                maxImageHeight: 160,
+                maxImageHeight: 500,
                 maxCaptionLines: 2,
-                captionSize: 16,
+                captionSize: 36,
                 arrangement: .horizontal
             )
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 100)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // Grid image layout (for 3+ images)
     private var gridImagesLayout: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 40) {
             // Title if it exists
             if let title = content.firstMarkdownHeading(level: 1) {
                 Text(title)
-                    .font(Font.custom(titleFont, size: 36, relativeTo: .title).weight(theme.titleFontWeight))
+                    .font(Font.custom(titleFont, size: 96, relativeTo: .title).weight(theme.titleFontWeight))
                     .foregroundColor(effectiveTitleColor)
-                    .lineSpacing(8)
+                    .lineSpacing(16)
                     .tracking(-0.5)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 20)
+                    .padding(.top, 60)
             }
             
             // Grid of images
@@ -424,49 +424,49 @@ struct SlideRenderView: View {
             
             ImageContentView(
                 markdown: bodyContent,
-                maxImageHeight: 100,
+                maxImageHeight: 360,
                 maxCaptionLines: 1,
-                captionSize: 14,
+                captionSize: 28,
                 arrangement: .grid
             )
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 100)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // Quote layout
     private var quoteLayout: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 50) {
             // Title if it exists
             if let title = content.firstMarkdownHeading(level: 1) {
                 Text(title)
-                    .font(Font.custom(titleFont, size: 36, relativeTo: .title).weight(theme.titleFontWeight))
+                    .font(Font.custom(titleFont, size: 96, relativeTo: .title).weight(theme.titleFontWeight))
                     .foregroundColor(effectiveTitleColor)
-                    .lineSpacing(8)
+                    .lineSpacing(16)
                     .tracking(-0.5)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 30)
+                    .padding(.top, 80)
             }
             
             // Extract quote and attribution
             let bodyContent = removeFirstHeading(from: content)
             if let (quote, attribution) = extractQuote(from: bodyContent) {
-                VStack(spacing: 16) {
+                VStack(spacing: 40) {
                     Text("\"\(quote)\"")
-                        .font(Font.custom(bodyFont, size: 30, relativeTo: .title2).italic())
+                        .font(Font.custom(bodyFont, size: 72, relativeTo: .title2).italic())
                         .foregroundColor(effectiveBodyColor)
                         .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-                        .padding(.horizontal, 20)
+                        .frame(maxWidth: 1200)
+                        .padding(.horizontal, 60)
                     
                     if !attribution.isEmpty {
                         Text("— " + attribution)
-                            .font(Font.custom(bodyFont, size: 20, relativeTo: .body))
+                            .font(Font.custom(bodyFont, size: 48, relativeTo: .body))
                             .foregroundColor(effectiveBodyColor.opacity(0.7))
                             .multilineTextAlignment(.center)
                     }
                 }
-                .padding(.vertical, 20)
+                .padding(.vertical, 50)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -588,9 +588,9 @@ struct SlideRenderView: View {
 // Dedicated view for rendering images from markdown
 struct ImageContentView: View {
     let markdown: String
-    var maxImageHeight: CGFloat = 180
+    var maxImageHeight: CGFloat = 720
     var maxCaptionLines: Int = 0  // 0 means unlimited
-    var captionSize: CGFloat = 14
+    var captionSize: CGFloat = 36
     var arrangement: ImageArrangement = .vertical
     
     // Define possible image arrangements
@@ -606,19 +606,19 @@ struct ImageContentView: View {
         Group {
             switch arrangement {
             case .vertical:
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 60) {
                     ForEach(images.indices, id: \.self) { index in
                         singleImageView(imageInfo: images[index])
                     }
                 }
             case .horizontal:
-                HStack(alignment: .top, spacing: 20) {
+                HStack(alignment: .top, spacing: 60) {
                     ForEach(images.indices, id: \.self) { index in
                         singleImageView(imageInfo: images[index])
                     }
                 }
             case .grid:
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 40) {
                     ForEach(images.indices, id: \.self) { index in
                         singleImageView(imageInfo: images[index])
                     }
@@ -629,7 +629,7 @@ struct ImageContentView: View {
     
     // Helper to create a consistent image view
     private func singleImageView(imageInfo: (alt: String, url: String)) -> some View {
-        VStack(alignment: .center, spacing: 8) {
+        VStack(alignment: .center, spacing: 20) {
             // Try to load image from URL first
             if let url = URL(string: imageInfo.url), let nsImage = NSImage(contentsOf: url) {
                 Image(nsImage: nsImage)
