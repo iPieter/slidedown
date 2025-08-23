@@ -771,7 +771,6 @@ struct SlidePreviewView: View {
             logoImage: logoImage,
             showFooter: showFooter
         )
-        .frame(height: 90)
     }
 }
 

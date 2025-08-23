@@ -125,6 +125,8 @@ struct SlideListItemView: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
+                
+                Spacer()
             }
             
             SlidePreviewView(
@@ -141,7 +143,6 @@ struct SlideListItemView: View {
                 logoImage: logoImage,
                 showFooter: showFooter
             )
-            .frame(height: 90)
             .cornerRadius(4)
         }
         .padding(.vertical, 2)
