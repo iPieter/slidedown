@@ -17,51 +17,130 @@ struct EditorView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Text editor with monospaced font
-            TextEditor(text: $markdownDocument)
-                .font(.system(size: 14, weight: .regular, design: .monospaced))
-                .lineSpacing(4)
-                .padding([.horizontal, .bottom], 12)
-                .padding(.top, 12)
+            // Text editor with styled markdown
+            StyledTextEditor(text: $markdownDocument)
+                .font(.system(size: 15, weight: .regular, design: .monospaced))
+                .lineSpacing(6)
+                .padding([.horizontal], 16)
+                .padding(.vertical, 12)
                 .background(Color(.textBackgroundColor))
-                .id("markdownEditor") // Add an ID to ensure TextEditor is properly refreshed
-                .background(NSTextViewBridgeRepresentable(text: $markdownDocument))
+                .id("markdownEditor")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// This is a bridge to help us interact with the NSTextView when it's created
-struct NSTextViewBridgeRepresentable: NSViewRepresentable {
+struct StyledTextEditor: NSViewRepresentable {
     @Binding var text: String
     
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        view.isHidden = true
-        return view
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
     }
     
-    func updateNSView(_ nsView: NSView, context: Context) {
-        // When this view is created or updated, attempt to properly configure the NSTextView
-        DispatchQueue.main.async {
-            if let scrollView = nsView.superview?.superview?.superview as? NSScrollView,
-               let textView = scrollView.documentView as? NSTextView {
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSTextView.scrollableTextView()
+        guard let textView = scrollView.documentView as? NSTextView else { return scrollView }
+        
+        textView.delegate = context.coordinator
+        textView.isRichText = false
+        textView.font = .monospacedSystemFont(ofSize: 15, weight: .regular)
+        textView.backgroundColor = .clear
+        textView.drawsBackground = true
+        textView.isAutomaticQuoteSubstitutionEnabled = true
+        textView.isAutomaticDashSubstitutionEnabled = true
+        textView.isAutomaticTextReplacementEnabled = true
+        textView.isAutomaticSpellingCorrectionEnabled = true
+        
+        return scrollView
+    }
+    
+    func updateNSView(_ nsView: NSScrollView, context: Context) {
+        guard let textView = nsView.documentView as? NSTextView else { return }
+        
+        if textView.string != text {
+            textView.string = text
+        }
+        
+        applyStylesToTextView(textView)
+    }
+    
+    private func applyStylesToTextView(_ textView: NSTextView) {
+        let text = textView.string
+        let storage = textView.textStorage!
+        let fullRange = NSRange(location: 0, length: text.count)
+        
+        // Reset attributes
+        storage.removeAttribute(.foregroundColor, range: fullRange)
+        storage.removeAttribute(.backgroundColor, range: fullRange)
+        storage.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
+        
+        // Style headers
+        let headerPattern = "^(#{1,6})\\s+(.+)$"
+        if let regex = try? NSRegularExpression(pattern: headerPattern, options: .anchorsMatchLines) {
+            regex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
+                guard let match = match else { return }
+                let headerRange = match.range(at: 0)
                 
-                // Make sure the text view has the correct string - ensures syncing
-                if textView.string != text {
-                    textView.string = text
-                }
-                
-                // Optional - register for notifications to better track selection
-                NotificationCenter.default.addObserver(
-                    forName: NSTextView.didChangeSelectionNotification,
-                    object: textView,
-                    queue: .main
-                ) { _ in
-                    // This could be used to trigger actions on selection change
-                    print("Selection changed in NSTextView")
-                }
+                // Create pill background for headers
+                let pillColor = NSColor(Color.accentColor.opacity(0.2))
+                storage.addAttribute(.backgroundColor, value: pillColor, range: headerRange)
+                storage.addAttribute(.foregroundColor, value: NSColor(Color.accentColor), range: headerRange)
+                storage.addAttribute(.font, value: NSFont.monospacedSystemFont(ofSize: 15, weight: .semibold), range: headerRange)
             }
+        }
+        
+        // Style image paths
+        let imagePattern = "!\\[.*?\\]\\((.*?)\\)"
+        if let regex = try? NSRegularExpression(pattern: imagePattern, options: []) {
+            regex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
+                guard let match = match else { return }
+                let fullRange = match.range(at: 0)
+                let pathRange = match.range(at: 1)
+                
+                // Style the full image markdown
+                storage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: fullRange)
+                
+                // Create pill background for the path
+                let pillColor = NSColor(Color(.controlBackgroundColor))
+                storage.addAttribute(.backgroundColor, value: pillColor, range: pathRange)
+                storage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: pathRange)
+            }
+        }
+        
+        // Style URLs
+        let urlPattern = "\\[.*?\\]\\((.*?)\\)"
+        if let regex = try? NSRegularExpression(pattern: urlPattern, options: []) {
+            regex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
+                guard let match = match else { return }
+                let fullRange = match.range(at: 0)
+                let urlRange = match.range(at: 1)
+                
+                // Style the full URL markdown
+                storage.addAttribute(.foregroundColor, value: NSColor(Color.blue), range: fullRange)
+                
+                // Create pill background for the URL
+                let pillColor = NSColor(Color(.controlBackgroundColor))
+                storage.addAttribute(.backgroundColor, value: pillColor, range: urlRange)
+            }
+        }
+    }
+    
+    class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: StyledTextEditor
+        
+        init(_ parent: StyledTextEditor) {
+            self.parent = parent
+        }
+        
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            parent.text = textView.string
+            parent.applyStylesToTextView(textView)
+        }
+        
+        func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
+            // Allow the change
+            return true
         }
     }
 }

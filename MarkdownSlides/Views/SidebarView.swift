@@ -22,27 +22,52 @@ struct SidebarView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Top control section
-            HStack {
+            // Top control section with improved styling
+            HStack(spacing: 12) {
                 Button(action: {
                     addNewSlide()
                 }) {
-                    Label("", systemImage: "plus")
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 12))
+                    Label("New Slide", systemImage: "plus")
+                        .font(.system(size: 13))
                 }
                 .buttonStyle(.borderless)
                 .help("Add New Slide")
                 
                 Spacer()
+                
+                Menu {
+                    Button(action: {
+                        addNewSlide()
+                    }) {
+                        Label("Blank Slide", systemImage: "rectangle.stack.badge.plus")
+                    }
+                    
+                    Button(action: {
+                        // Add title slide template
+                    }) {
+                        Label("Title Slide", systemImage: "text.badge.plus")
+                    }
+                    
+                    Button(action: {
+                        // Add image slide template
+                    }) {
+                        Label("Image Slide", systemImage: "photo.badge.plus")
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 24)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .background(Color(.controlBackgroundColor).opacity(0.5))
             
             Divider()
             
-            // Slides list
+            // Slides list with improved styling
             List(selection: $selectedSlideIndex) {
                 ForEach(Array(slides.enumerated()), id: \.offset) { index, slideContent in
                     SlideListItemView(
@@ -60,20 +85,27 @@ struct SidebarView: View {
                     )
                     .tag(index)
                     .contextMenu {
-                        Button("Duplicate Slide") {
-                            // Duplicate slide functionality
+                        Button(action: {
+                            duplicateSlide(at: index)
+                        }) {
+                            Label("Duplicate Slide", systemImage: "plus.square.on.square")
                         }
+                        
                         Divider()
-                        Button("Delete Slide", role: .destructive) {
-                            // Delete slide functionality
+                        
+                        Button(action: {
+                            deleteSlide(at: index)
+                        }) {
+                            Label("Delete Slide", systemImage: "trash")
                         }
                     }
                 }
                 .onMove { indices, newOffset in
-                    // Move functionality
+                    moveSlides(from: indices, to: newOffset)
                 }
             }
             .listStyle(.sidebar)
+            .background(Color(.textBackgroundColor))
         }
     }
     
@@ -84,6 +116,31 @@ struct SidebarView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             selectedSlideIndex = slides.count - 1
         }
+    }
+    
+    private func duplicateSlide(at index: Int) {
+        guard index >= 0 && index < slides.count else { return }
+        let slideContent = slides[index]
+        let insertPoint = markdownDocument.range(of: slideContent)?.upperBound ?? markdownDocument.endIndex
+        markdownDocument.insert(contentsOf: "\n\n___\n\(slideContent)", at: insertPoint)
+    }
+    
+    private func deleteSlide(at index: Int) {
+        guard slides.count > 1, index >= 0 && index < slides.count else { return }
+        let slideContent = slides[index]
+        if let range = markdownDocument.range(of: slideContent) {
+            var rangeToDelete = range
+            // Include the slide separator if it exists
+            if index > 0 {
+                rangeToDelete = (markdownDocument.range(of: "\n\n___\n", range: markdownDocument.startIndex..<range.lowerBound)?.lowerBound ?? range.lowerBound)..<range.upperBound
+            }
+            markdownDocument.removeSubrange(rangeToDelete)
+        }
+    }
+    
+    private func moveSlides(from source: IndexSet, to destination: Int) {
+        // Implementation for moving slides
+        // This would need to manipulate the markdown document string
     }
 }
 
@@ -101,27 +158,28 @@ struct SlideListItemView: View {
     let logoImage: NSImage?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        VStack(alignment: .leading, spacing: 8) {
+            // Slide header with improved styling
+            HStack(spacing: 8) {
                 Text("\(index + 1)")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.secondary)
-                    .frame(width: 22, alignment: .center)
+                    .frame(width: 24, height: 18)
                     .background(Color(.controlBackgroundColor))
                     .cornerRadius(4)
                 
                 if let title = slideContent.firstMarkdownHeading(level: 1) {
                     Text(title)
-                        .font(.headline)
+                        .font(.system(size: 13, weight: .medium))
                         .lineLimit(1)
                 } else if let title = slideContent.firstMarkdownHeading(level: 2) {
                     Text(title)
-                        .font(.subheadline)
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 } else {
                     Text("Untitled Slide")
-                        .font(.subheadline)
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
@@ -129,6 +187,7 @@ struct SlideListItemView: View {
                 Spacer()
             }
             
+            // Slide preview with improved styling
             SlidePreviewView(
                 content: slideContent, 
                 theme: selectedTheme, 
@@ -138,13 +197,16 @@ struct SlideListItemView: View {
                 bodyColor: bodyColor,
                 backgroundColor: backgroundColor,
                 slideNumber: index + 1,
-                totalSlides: 0,  // Set to actual count in the parent view
+                totalSlides: 0,
                 presentationTitle: presentationTitle,
                 logoImage: logoImage,
                 showFooter: showFooter
             )
-            .cornerRadius(4)
+            .frame(maxWidth: .infinity)
+            .aspectRatio(16/9, contentMode: .fit)
+            .cornerRadius(6)
+            .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
     }
 } 
