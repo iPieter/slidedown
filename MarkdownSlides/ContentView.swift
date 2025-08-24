@@ -59,7 +59,7 @@ struct ContentView: View {
                     logoImage: $logoImage,
                     slides: slides
                 )
-                .frame(minWidth: 200, idealWidth: 240, maxWidth: 280)
+                .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
                 
                 // Main editor area with preview
                 VStack(spacing: 0) {

@@ -112,30 +112,86 @@ struct ColorPickerRow: View {
     }
 }
 
+func getSystemFonts() -> [String] {
+    let fontFamilyNames = NSFontManager.shared.availableFontFamilies
+    return fontFamilyNames.sorted()
+}
+
 struct FontPickerRow: View {
     let title: String
     @Binding var selectedFont: String
     let fonts: [String]
+    @State private var searchText = ""
+    @State private var isExpanded = false
+    
+    var filteredFonts: [String] {
+        if searchText.isEmpty {
+            return fonts
+        }
+        return fonts.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
     
     var body: some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.system(size: 13))
-                .foregroundColor(.primary)
-            
-            Spacer()
-            
-            Picker("", selection: $selectedFont) {
-                ForEach(fonts, id: \.self) { font in
-                    Text(font)
-                        .font(.system(size: 13))
-                        .tag(font)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Menu {
+                    SearchBar(text: $searchText)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                    
+                    Divider()
+                    
+                    ForEach(filteredFonts, id: \.self) { font in
+                        Button(action: { selectedFont = font }) {
+                            HStack {
+                                Text(font)
+                                    .font(.custom(font, size: 13))
+                                Spacer()
+                                Text("Aa")
+                                    .font(.custom(font, size: 11))
+                                    .foregroundColor(.secondary)
+                                
+                                if font == selectedFont {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedFont)
+                            .font(.custom(selectedFont, size: 13))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10))
+                    }
+                    .frame(width: 200, alignment: .leading)
                 }
             }
-            .pickerStyle(.menu)
-            .frame(width: 160)
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
+    }
+}
+
+struct SearchBar: View {
+    @Binding var text: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+            TextField("Search Fonts", text: $text)
+                .textFieldStyle(.plain)
+        }
+        .padding(6)
+        .background(Color(.textBackgroundColor))
+        .cornerRadius(6)
     }
 }
 
@@ -196,9 +252,7 @@ struct ThemeSettingsView: View {
     @StateObject private var themeManager = ThemeManager.shared
     @State private var selectedCustomTheme: CustomTheme?
     
-    // Available fonts
-    private let titleFonts = ["SF Pro Display", "SF Pro Text", "Helvetica Neue", "Georgia", "Avenir", "Futura"]
-    private let bodyFonts = ["SF Pro Text", "Inter — Template Default", "Helvetica Neue", "Georgia", "Avenir", "Times"]
+    private let systemFonts = getSystemFonts()
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -310,8 +364,8 @@ struct ThemeSettingsView: View {
                     .font(.headline)
                     .padding(.bottom, 4)
                 
-                FontPickerRow(title: "Title Font", selectedFont: $selectedTitleFont, fonts: titleFonts)
-                FontPickerRow(title: "Body Font", selectedFont: $selectedBodyFont, fonts: bodyFonts)
+                FontPickerRow(title: "Title Font", selectedFont: $selectedTitleFont, fonts: systemFonts)
+                FontPickerRow(title: "Body Font", selectedFont: $selectedBodyFont, fonts: systemFonts)
                 
                 // Font preview
                 VStack(alignment: .leading, spacing: 4) {
@@ -509,15 +563,38 @@ struct CustomThemeButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                // Theme color preview
+                // Theme color preview with content
                 ZStack(alignment: .topTrailing) {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(theme.backgroundColor)
-                        .frame(height: 24)
+                        .frame(height: 48)  // Made taller to fit content
                         .overlay(
                             RoundedRectangle(cornerRadius: 4)
                                 .stroke(isSelected ? Color.accentColor : Color(.separatorColor), lineWidth: isSelected ? 2 : 1)
                         )
+                    
+                    // Theme preview content
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let logoData = theme.logo,
+                           let image = NSImage(data: logoData) {
+                            Image(nsImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 16)
+                                .padding(.top, 4)
+                        }
+                        
+                        Text("Title")
+                            .font(.custom(theme.titleFont, size: 10))
+                            .foregroundColor(theme.titleColor)
+                            .padding(.horizontal, 4)
+                        
+                        Text("Sample text")
+                            .font(.custom(theme.defaultFont, size: 8))
+                            .foregroundColor(theme.foregroundColor)
+                            .padding(.horizontal, 4)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     // Edit/Delete menu
                     Menu {
@@ -535,15 +612,6 @@ struct CustomThemeButton: View {
                     .font(.system(size: 11))
                     .lineLimit(1)
                     .foregroundColor(isSelected ? .accentColor : .primary)
-                
-                // Logo preview if exists
-                if let logoData = theme.logo,
-                   let image = NSImage(data: logoData) {
-                    Image(nsImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 16)
-                }
             }
             .padding(4)
         }
@@ -564,6 +632,7 @@ struct CustomThemeEditor: View {
     @State private var selectedTitleFont = "SF Pro Display"
     @State private var selectedBodyFont = "SF Pro Text"
     @State private var logoImage: NSImage?
+    private let systemFonts = getSystemFonts()
     
     init(isPresented: Binding<Bool>, editingTheme: CustomTheme? = nil) {
         self._isPresented = isPresented
@@ -590,8 +659,8 @@ struct CustomThemeEditor: View {
                 ColorPickerRow(title: "Background Color", color: $backgroundColor)
                 ColorPickerRow(title: "Title Color", color: $titleColor)
                 ColorPickerRow(title: "Body Color", color: $foregroundColor)
-                FontPickerRow(title: "Title Font", selectedFont: $selectedTitleFont, fonts: ["SF Pro Display", "Helvetica Neue", "Georgia"])
-                FontPickerRow(title: "Body Font", selectedFont: $selectedBodyFont, fonts: ["SF Pro Text", "Helvetica Neue", "Georgia"])
+                FontPickerRow(title: "Title Font", selectedFont: $selectedTitleFont, fonts: systemFonts)
+                FontPickerRow(title: "Body Font", selectedFont: $selectedBodyFont, fonts: systemFonts)
                 
                 HStack {
                     Text("Logo")
