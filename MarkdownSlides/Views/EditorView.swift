@@ -47,7 +47,7 @@ struct StyledTextEditor: NSViewRepresentable {
         textView.backgroundColor = .clear
         textView.drawsBackground = true
         textView.isAutomaticQuoteSubstitutionEnabled = true
-        textView.isAutomaticDashSubstitutionEnabled = true
+        textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = true
         textView.isAutomaticSpellingCorrectionEnabled = true
         
@@ -84,9 +84,9 @@ struct StyledTextEditor: NSViewRepresentable {
                 // Create pill background for headers with padding
                 let pillColor = NSColor(Color.accentColor.opacity(0.15))
                 let paragraphStyle = NSMutableParagraphStyle()
-                paragraphStyle.firstLineHeadIndent = 8  // Left padding
-                paragraphStyle.headIndent = 8          // Left padding for wrapped lines
-                paragraphStyle.tailIndent = -8         // Right padding
+                //paragraphStyle.firstLineHeadIndent = 8  // Left padding
+                //paragraphStyle.headIndent = 8          // Left padding for wrapped lines
+                //paragraphStyle.tailIndent = -8         // Right padding
                 
                 storage.addAttribute(.backgroundColor, value: pillColor, range: headerRange)
                 storage.addAttribute(.foregroundColor, value: NSColor(Color.accentColor), range: headerRange)

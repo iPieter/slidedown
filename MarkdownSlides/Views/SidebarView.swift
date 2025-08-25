@@ -110,7 +110,7 @@ struct SidebarView: View {
     }
     
     private func addNewSlide() {
-        let newSlide = "\n\n___\n\n# New Slide\n\nAdd content here"
+        let newSlide = "\n\n---\n\n# New Slide\n\nAdd content here"
         markdownDocument += newSlide
         // Set the selection to the new slide
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -122,7 +122,7 @@ struct SidebarView: View {
         guard index >= 0 && index < slides.count else { return }
         let slideContent = slides[index]
         let insertPoint = markdownDocument.range(of: slideContent)?.upperBound ?? markdownDocument.endIndex
-        markdownDocument.insert(contentsOf: "\n\n___\n\(slideContent)", at: insertPoint)
+        markdownDocument.insert(contentsOf: "\n\n---\n\(slideContent)", at: insertPoint)
     }
     
     private func deleteSlide(at index: Int) {
@@ -132,7 +132,7 @@ struct SidebarView: View {
             var rangeToDelete = range
             // Include the slide separator if it exists
             if index > 0 {
-                rangeToDelete = (markdownDocument.range(of: "\n\n___\n", range: markdownDocument.startIndex..<range.lowerBound)?.lowerBound ?? range.lowerBound)..<range.upperBound
+                rangeToDelete = (markdownDocument.range(of: "\n\n---\n", range: markdownDocument.startIndex..<range.lowerBound)?.lowerBound ?? range.lowerBound)..<range.upperBound
             }
             markdownDocument.removeSubrange(rangeToDelete)
         }

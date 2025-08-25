@@ -1,9 +1,9 @@
 import Foundation
 
 extension String {
-    /// Splits a markdown document into slides using ___ as the separator.
+    /// Splits a markdown document into slides using --- as the separator.
     func splitIntoSlides() -> [String] {
-        let pattern = "\n_{3,}\n"
+        let pattern = "\n-{3,}\n"
         let regex = try? NSRegularExpression(pattern: pattern, options: [])
         let nsString = self as NSString
         let range = NSRange(location: 0, length: nsString.length)

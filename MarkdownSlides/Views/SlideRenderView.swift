@@ -29,6 +29,11 @@ struct SlideRenderView: View {
     var customBodyColor: Color?
     var customBackgroundColor: Color?
     
+    // Add alignment support
+    var titleAlignment: TextAlignment = .left
+    var subtitleAlignment: TextAlignment = .left
+    var bodyAlignment: TextAlignment = .left
+    
     // Add footer elements
     var slideNumber: Int?
     var totalSlides: Int?
@@ -120,7 +125,11 @@ struct SlideRenderView: View {
         return .standard
     }
     
-    init(content: String, theme: SlideTheme, showDecorations: Bool = true, titleFont: String? = nil, bodyFont: String? = nil, titleColor: Color? = nil, bodyColor: Color? = nil, backgroundColor: Color? = nil, slideNumber: Int? = nil, totalSlides: Int? = nil, presentationTitle: String? = nil, logoImage: NSImage? = nil, showFooter: Bool = false) {
+    init(content: String, theme: SlideTheme, showDecorations: Bool = true, titleFont: String? = nil, bodyFont: String? = nil, 
+         titleColor: Color? = nil, bodyColor: Color? = nil, backgroundColor: Color? = nil, 
+         titleAlignment: TextAlignment = .left, subtitleAlignment: TextAlignment = .left, bodyAlignment: TextAlignment = .left,
+         slideNumber: Int? = nil, totalSlides: Int? = nil, presentationTitle: String? = nil, 
+         logoImage: NSImage? = nil, showFooter: Bool = false) {
         self.content = content
         self.theme = theme
         self.showDecorations = showDecorations
@@ -133,6 +142,9 @@ struct SlideRenderView: View {
         self.customTitleColor = titleColor
         self.customBodyColor = bodyColor
         self.customBackgroundColor = backgroundColor
+        self.titleAlignment = titleAlignment
+        self.subtitleAlignment = subtitleAlignment
+        self.bodyAlignment = bodyAlignment
         self.slideNumber = slideNumber
         self.totalSlides = totalSlides
         self.presentationTitle = presentationTitle
@@ -262,7 +274,7 @@ struct SlideRenderView: View {
                     .foregroundColor(effectiveTitleColor)
                     .lineSpacing(16)
                     .tracking(-0.5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: titleAlignment == .left ? .leading : titleAlignment == .center ? .center : .trailing)
                     .padding(.bottom, 60)
                     .padding(.top, 100)
                     .padding(.horizontal, 100)
@@ -289,7 +301,7 @@ struct SlideRenderView: View {
                                              size: 60, relativeTo: .body))
                             .foregroundColor(effectiveBodyColor)
                             .lineSpacing(16)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(maxWidth: .infinity, alignment: bodyAlignment == .left ? .leading : bodyAlignment == .center ? .center : .trailing)
                             .textSelection(.enabled)
                     }
                     
@@ -335,8 +347,8 @@ struct SlideRenderView: View {
                     .foregroundColor(effectiveTitleColor)
                     .lineSpacing(20)
                     .tracking(-0.5)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(titleAlignment == .left ? .leading : titleAlignment == .center ? .center : .trailing)
+                    .frame(maxWidth: .infinity, alignment: titleAlignment == .left ? .leading : titleAlignment == .center ? .center : .trailing)
                     .padding(.horizontal, 120)
             }
             
@@ -344,8 +356,8 @@ struct SlideRenderView: View {
                 Text(subtitle)
                     .font(Font.custom(bodyFont, size: 90, relativeTo: .title2))
                     .foregroundColor(effectiveBodyColor.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(subtitleAlignment == .left ? .leading : subtitleAlignment == .center ? .center : .trailing)
+                    .frame(maxWidth: .infinity, alignment: subtitleAlignment == .left ? .leading : subtitleAlignment == .center ? .center : .trailing)
                     .padding(.horizontal, 150)
             }
         }
@@ -421,8 +433,6 @@ struct SlideRenderView: View {
             ImageContentView(
                 markdown: bodyContent,
                 maxImageHeight: 720,
-                maxCaptionLines: 0,
-                captionSize: 36,
                 arrangement: .vertical
             )
             .padding(.horizontal, 100)
@@ -750,6 +760,9 @@ struct SlidePreviewView: View {
     var titleColor: Color?
     var bodyColor: Color?
     var backgroundColor: Color?
+    var titleAlignment: TextAlignment = .left
+    var subtitleAlignment: TextAlignment = .left
+    var bodyAlignment: TextAlignment = .left
     var slideNumber: Int?
     var totalSlides: Int?
     var presentationTitle: String?
@@ -765,6 +778,9 @@ struct SlidePreviewView: View {
             titleColor: titleColor,
             bodyColor: bodyColor,
             backgroundColor: backgroundColor,
+            titleAlignment: titleAlignment,
+            subtitleAlignment: subtitleAlignment,
+            bodyAlignment: bodyAlignment,
             slideNumber: slideNumber,
             totalSlides: totalSlides,
             presentationTitle: presentationTitle,

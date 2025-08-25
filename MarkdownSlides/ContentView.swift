@@ -2,7 +2,7 @@ import SwiftUI
 import Down
 
 struct ContentView: View {
-    @State private var markdownDocument: String = "# Welcome\n## This is my first slide\n\n___\n\n# Second Slide\n\nContent for the second slide.\n___\n# A giraffe!\n![Image](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F304%2F879%2Fnon_2x%2Fgiraffe-in-kruger-national-park-south-africa-giraffa-camelopardalis-family-of-giraffidae-portrait-photo.JPG&f=1&nofb=1&ipt=0759ac375ce03c7b58117ab735fb63a6d32eac57f6f515d62198a5182106e01c)"
+    @State private var markdownDocument: String = "# Welcome\n## This is my first slide\n\n---\n\n# Second Slide\n\nContent for the second slide.\n---\n# A giraffe!\n![Image](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F304%2F879%2Fnon_2x%2Fgiraffe-in-kruger-national-park-south-africa-giraffa-camelopardalis-family-of-giraffidae-portrait-photo.JPG&f=1&nofb=1&ipt=0759ac375ce03c7b58117ab735fb63a6d32eac57f6f515d62198a5182106e01c)"
     @State private var selectedSlideIndex: Int = 0
     @State private var selectedTheme: SlideTheme = .light
     @State private var isPresentationMode: Bool = false
@@ -28,6 +28,11 @@ struct ContentView: View {
     
     // Extracted selectedTextRange from EditorView
     @State private var selectedTextRange: NSRange?
+    
+    // New state variables for text alignment
+    @State private var titleAlignment: TextAlignment = .left
+    @State private var subtitleAlignment: TextAlignment = .left
+    @State private var bodyAlignment: TextAlignment = .left
     
     private let presentationManager = PresentationWindowManager()
     
@@ -115,7 +120,10 @@ struct ContentView: View {
                             appearance: $appearance,
                             showFooter: $showFooter,
                             presentationTitle: $presentationTitle,
-                            logoImage: $logoImage
+                            logoImage: $logoImage,
+                            titleAlignment: $titleAlignment,
+                            subtitleAlignment: $subtitleAlignment,
+                            bodyAlignment: $bodyAlignment
                         )
                         .padding(.top, 8)
                     }
@@ -403,7 +411,7 @@ struct ContentView: View {
     }
     
     private func addNewSlide() {
-        let newSlide = "\n\n___\n\n# New Slide\n\nAdd content here"
+        let newSlide = "\n\n---\n\n# New Slide\n\nAdd content here"
         markdownDocument += newSlide
         // Set the selection to the new slide
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

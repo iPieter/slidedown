@@ -19,6 +19,20 @@ struct CodableColor: Codable {
     }
 }
 
+enum TextAlignment: String, Codable, CaseIterable {
+    case left = "Left"
+    case center = "Center"
+    case right = "Right"
+    
+    var swiftUIAlignment: SwiftUI.TextAlignment {
+        switch self {
+        case .left: return .leading
+        case .center: return .center
+        case .right: return .trailing
+        }
+    }
+}
+
 struct CustomTheme: Identifiable, Codable {
     let id: UUID
     var name: String
@@ -28,6 +42,9 @@ struct CustomTheme: Identifiable, Codable {
     var logo: Data?  // Store logo as Data
     var defaultFont: String
     var titleFont: String
+    var titleAlignment: TextAlignment
+    var subtitleAlignment: TextAlignment
+    var bodyAlignment: TextAlignment
     
     var backgroundColor: Color {
         get { _backgroundColor.color }
@@ -44,7 +61,7 @@ struct CustomTheme: Identifiable, Codable {
         set { _foregroundColor = CodableColor(color: newValue) }
     }
     
-    init(id: UUID, name: String, backgroundColor: Color, titleColor: Color, foregroundColor: Color, logo: Data?, defaultFont: String, titleFont: String) {
+    init(id: UUID, name: String, backgroundColor: Color, titleColor: Color, foregroundColor: Color, logo: Data?, defaultFont: String, titleFont: String, titleAlignment: TextAlignment = .left, subtitleAlignment: TextAlignment = .left, bodyAlignment: TextAlignment = .left) {
         self.id = id
         self.name = name
         self._backgroundColor = CodableColor(color: backgroundColor)
@@ -53,6 +70,9 @@ struct CustomTheme: Identifiable, Codable {
         self.logo = logo
         self.defaultFont = defaultFont
         self.titleFont = titleFont
+        self.titleAlignment = titleAlignment
+        self.subtitleAlignment = subtitleAlignment
+        self.bodyAlignment = bodyAlignment
     }
 }
 
@@ -248,8 +268,11 @@ struct ThemeSettingsView: View {
     @Binding var showFooter: Bool
     @Binding var presentationTitle: String
     @Binding var logoImage: NSImage?
-    @State private var showingAddThemeSheet = false
+    @Binding var titleAlignment: TextAlignment
+    @Binding var subtitleAlignment: TextAlignment
+    @Binding var bodyAlignment: TextAlignment
     @StateObject private var themeManager = ThemeManager.shared
+    @State private var showingAddThemeSheet = false
     @State private var selectedCustomTheme: CustomTheme?
     
     private let systemFonts = getSystemFonts()
@@ -358,7 +381,7 @@ struct ThemeSettingsView: View {
             Divider()
                 .padding(.vertical, 8)
             
-            // Font selection
+            // Typography section
             VStack(alignment: .leading, spacing: 8) {
                 Text("Typography")
                     .font(.headline)
@@ -367,26 +390,17 @@ struct ThemeSettingsView: View {
                 FontPickerRow(title: "Title Font", selectedFont: $selectedTitleFont, fonts: systemFonts)
                 FontPickerRow(title: "Body Font", selectedFont: $selectedBodyFont, fonts: systemFonts)
                 
-                // Font preview
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Title Preview")
-                        .font(Font.custom(selectedTitleFont, size: 14, relativeTo: .headline))
-                        .fontWeight(.semibold)
-                        .foregroundColor(titleColor)
-                    
-                    Text("Body text preview with the selected font")
-                        .font(Font.custom(selectedBodyFont.replacingOccurrences(of: " — Template Default", with: ""), size: 12))
-                        .foregroundColor(bodyColor)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(backgroundColor)
-                .cornerRadius(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(Color(.separatorColor), lineWidth: 1)
-                )
+                Divider()
+                    .padding(.vertical, 8)
+                
+                // Text Alignment section
+                Text("Text Alignment")
+                    .font(.headline)
+                    .padding(.bottom, 4)
+                
+                AlignmentPicker(title: "Title Alignment", alignment: $titleAlignment)
+                AlignmentPicker(title: "Subtitle Alignment", alignment: $subtitleAlignment)
+                AlignmentPicker(title: "Body Alignment", alignment: $bodyAlignment)
             }
             .padding([.horizontal, .bottom])
             
@@ -462,6 +476,9 @@ struct ThemeSettingsView: View {
         backgroundColor = theme.backgroundColor
         selectedTitleFont = theme.titleFont
         selectedBodyFont = theme.defaultFont
+        titleAlignment = theme.titleAlignment
+        subtitleAlignment = theme.subtitleAlignment
+        bodyAlignment = theme.bodyAlignment
         if let logoData = theme.logo,
            let image = NSImage(data: logoData) {
             logoImage = image
@@ -587,14 +604,14 @@ struct CustomThemeButton: View {
                         Text("Title")
                             .font(.custom(theme.titleFont, size: 10))
                             .foregroundColor(theme.titleColor)
-                            .padding(.horizontal, 4)
+                            .frame(maxWidth: .infinity, alignment: theme.titleAlignment == .left ? .leading : theme.titleAlignment == .center ? .center : .trailing)
                         
                         Text("Sample text")
                             .font(.custom(theme.defaultFont, size: 8))
                             .foregroundColor(theme.foregroundColor)
-                            .padding(.horizontal, 4)
+                            .frame(maxWidth: .infinity, alignment: theme.bodyAlignment == .left ? .leading : theme.bodyAlignment == .center ? .center : .trailing)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
                     
                     // Edit/Delete menu
                     Menu {
@@ -621,6 +638,34 @@ struct CustomThemeButton: View {
     }
 }
 
+struct AlignmentPicker: View {
+    let title: String
+    @Binding var alignment: TextAlignment
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 13))
+            
+            Spacer()
+            
+            Picker("", selection: $alignment) {
+                ForEach(TextAlignment.allCases, id: \.self) { alignment in
+                    HStack {
+                        Image(systemName: alignment == .left ? "text.alignleft" :
+                                       alignment == .center ? "text.aligncenter" :
+                                       "text.alignright")
+                        Text(alignment.rawValue)
+                    }
+                    .tag(alignment)
+                }
+            }
+            .frame(width: 120)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 struct CustomThemeEditor: View {
     @Binding var isPresented: Bool
     var editingTheme: CustomTheme?
@@ -632,6 +677,9 @@ struct CustomThemeEditor: View {
     @State private var selectedTitleFont = "SF Pro Display"
     @State private var selectedBodyFont = "SF Pro Text"
     @State private var logoImage: NSImage?
+    @State private var titleAlignment: TextAlignment = .left
+    @State private var subtitleAlignment: TextAlignment = .left
+    @State private var bodyAlignment: TextAlignment = .left
     private let systemFonts = getSystemFonts()
     
     init(isPresented: Binding<Bool>, editingTheme: CustomTheme? = nil) {
@@ -645,6 +693,9 @@ struct CustomThemeEditor: View {
             _foregroundColor = State(initialValue: theme.foregroundColor)
             _selectedTitleFont = State(initialValue: theme.titleFont)
             _selectedBodyFont = State(initialValue: theme.defaultFont)
+            _titleAlignment = State(initialValue: theme.titleAlignment)
+            _subtitleAlignment = State(initialValue: theme.subtitleAlignment)
+            _bodyAlignment = State(initialValue: theme.bodyAlignment)
             if let logoData = theme.logo,
                let image = NSImage(data: logoData) {
                 _logoImage = State(initialValue: image)
@@ -661,6 +712,14 @@ struct CustomThemeEditor: View {
                 ColorPickerRow(title: "Body Color", color: $foregroundColor)
                 FontPickerRow(title: "Title Font", selectedFont: $selectedTitleFont, fonts: systemFonts)
                 FontPickerRow(title: "Body Font", selectedFont: $selectedBodyFont, fonts: systemFonts)
+                
+                Divider()
+                
+                AlignmentPicker(title: "Title Alignment", alignment: $titleAlignment)
+                AlignmentPicker(title: "Subtitle Alignment", alignment: $subtitleAlignment)
+                AlignmentPicker(title: "Body Alignment", alignment: $bodyAlignment)
+                
+                Divider()
                 
                 HStack {
                     Text("Logo")
@@ -679,7 +738,7 @@ struct CustomThemeEditor: View {
             }
             .padding()
             .frame(width: 400)
-            .navigationTitle("New Theme")
+            .navigationTitle(editingTheme == nil ? "New Theme" : "Edit Theme")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -719,7 +778,10 @@ struct CustomThemeEditor: View {
             foregroundColor: foregroundColor,
             logo: logoImage?.tiffRepresentation,
             defaultFont: selectedBodyFont,
-            titleFont: selectedTitleFont
+            titleFont: selectedTitleFont,
+            titleAlignment: titleAlignment,
+            subtitleAlignment: subtitleAlignment,
+            bodyAlignment: bodyAlignment
         )
         
         themeManager.saveTheme(theme)
