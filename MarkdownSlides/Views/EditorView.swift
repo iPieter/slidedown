@@ -81,46 +81,89 @@ struct StyledTextEditor: NSViewRepresentable {
                 guard let match = match else { return }
                 let headerRange = match.range(at: 0)
                 
-                // Create pill background for headers
-                let pillColor = NSColor(Color.accentColor.opacity(0.2))
+                // Create pill background for headers with padding
+                let pillColor = NSColor(Color.accentColor.opacity(0.15))
+                let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.firstLineHeadIndent = 8  // Left padding
+                paragraphStyle.headIndent = 8          // Left padding for wrapped lines
+                paragraphStyle.tailIndent = -8         // Right padding
+                
                 storage.addAttribute(.backgroundColor, value: pillColor, range: headerRange)
                 storage.addAttribute(.foregroundColor, value: NSColor(Color.accentColor), range: headerRange)
+                storage.addAttribute(.paragraphStyle, value: paragraphStyle, range: headerRange)
                 storage.addAttribute(.font, value: NSFont.monospacedSystemFont(ofSize: 15, weight: .semibold), range: headerRange)
             }
         }
         
-        // Style image paths
-        let imagePattern = "!\\[.*?\\]\\((.*?)\\)"
+        // Style image paths with subtle markdown syntax
+        let imagePattern = "(!\\[)(.*?)(\\]\\()(.*?)(\\))"
         if let regex = try? NSRegularExpression(pattern: imagePattern, options: []) {
             regex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
                 guard let match = match else { return }
-                let fullRange = match.range(at: 0)
-                let pathRange = match.range(at: 1)
                 
-                // Style the full image markdown
-                storage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: fullRange)
+                let syntaxRanges = [
+                    match.range(at: 1), // ![ part
+                    match.range(at: 3), // ]( part
+                    match.range(at: 5)  // ) part
+                ]
                 
-                // Create pill background for the path
+                let altTextRange = match.range(at: 2) // The alt text
+                let pathRange = match.range(at: 4)    // The URL/path
+                
+                // Style the markdown syntax to be subtle
+                for range in syntaxRanges {
+                    storage.addAttribute(.foregroundColor, value: NSColor.tertiaryLabelColor, range: range)
+                }
+                
+                // Style the alt text normally
+                storage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: altTextRange)
+                
+                // Create pill background for the path with padding
                 let pillColor = NSColor(Color(.controlBackgroundColor))
+                let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.firstLineHeadIndent = 4  // Left padding
+                paragraphStyle.headIndent = 4          // Left padding for wrapped lines
+                paragraphStyle.tailIndent = -4         // Right padding
+                
                 storage.addAttribute(.backgroundColor, value: pillColor, range: pathRange)
                 storage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: pathRange)
+                storage.addAttribute(.paragraphStyle, value: paragraphStyle, range: pathRange)
             }
         }
         
-        // Style URLs
-        let urlPattern = "\\[.*?\\]\\((.*?)\\)"
+        // Style URLs with padding
+        let urlPattern = "(\\[)(.*?)(\\]\\()(.*?)(\\))"
         if let regex = try? NSRegularExpression(pattern: urlPattern, options: []) {
             regex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
                 guard let match = match else { return }
-                let fullRange = match.range(at: 0)
-                let urlRange = match.range(at: 1)
                 
-                // Style the full URL markdown
-                storage.addAttribute(.foregroundColor, value: NSColor(Color.blue), range: fullRange)
+                let syntaxRanges = [
+                    match.range(at: 1), // [ part
+                    match.range(at: 3), // ]( part
+                    match.range(at: 5)  // ) part
+                ]
                 
-                // Create pill background for the URL
+                let textRange = match.range(at: 2) // The link text
+                let urlRange = match.range(at: 4)  // The URL
+                
+                // Style the markdown syntax to be subtle
+                for range in syntaxRanges {
+                    storage.addAttribute(.foregroundColor, value: NSColor.tertiaryLabelColor, range: range)
+                }
+                
+                // Style the link text
+                storage.addAttribute(.foregroundColor, value: NSColor(Color.blue), range: textRange)
+                
+                // Create pill background for the URL with padding
                 let pillColor = NSColor(Color(.controlBackgroundColor))
+                let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.firstLineHeadIndent = 4  // Left padding
+                paragraphStyle.headIndent = 4          // Left padding for wrapped lines
+                paragraphStyle.tailIndent = -4         // Right padding
+                
                 storage.addAttribute(.backgroundColor, value: pillColor, range: urlRange)
+                storage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: urlRange)
+                storage.addAttribute(.paragraphStyle, value: paragraphStyle, range: urlRange)
             }
         }
     }
