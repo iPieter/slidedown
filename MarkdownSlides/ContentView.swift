@@ -2,7 +2,7 @@ import SwiftUI
 import Down
 
 struct ContentView: View {
-    @State private var markdownDocument: String = "# Welcome\n## This is my first slide\n\n---\n\n# Second Slide\n\nContent for the second slide.\n---\n# A giraffe!\n![Image](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F304%2F879%2Fnon_2x%2Fgiraffe-in-kruger-national-park-south-africa-giraffa-camelopardalis-family-of-giraffidae-portrait-photo.JPG&f=1&nofb=1&ipt=0759ac375ce03c7b58117ab735fb63a6d32eac57f6f515d62198a5182106e01c)"
+    @State private var markdownDocument: String = "# Welcome\n## This is my first slide\n\n---\n\n# Second Slide\n\nContent for the second slide.\n---\n# A giraffe!\n![Image](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F304%2F879%2Fnon_2x%2Fgiraffe-in-kruger-national-park-south-africa-giraffa-camelopardalis-family-of-giraffidae-portrait-photo.JPG&f=1&nofb=1&ipt=0759ac375ce03c7b58117ab735fb63a6d32eac57f6f515d62198a5182106e01c)\n---\n# Web Demo\nhttps://playground.thomaswinters.be/completions"
     @State private var selectedSlideIndex: Int = 0
     @State private var selectedTheme: SlideTheme = .light
     @State private var isPresentationMode: Bool = false
@@ -64,7 +64,7 @@ struct ContentView: View {
                     logoImage: $logoImage,
                     slides: slides
                 )
-                .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
+                .frame(minWidth: 200, idealWidth: 240, maxWidth: 350)
                 
                 // Main editor area with preview
                 VStack(spacing: 0) {
@@ -242,6 +242,14 @@ struct ContentView: View {
                             .frame(width: 20, height: 20)
                     }
                     .help("Insert Image")
+                    
+                    Button {
+                        addTitleAndURLSlide()
+                    } label: {
+                        Image(systemName: "globe")
+                            .frame(width: 20, height: 20)
+                    }
+                    .help("Add Web Slide")
                 }
                 .buttonStyle(.bordered)
             }
@@ -412,6 +420,15 @@ struct ContentView: View {
     
     private func addNewSlide() {
         let newSlide = "\n\n---\n\n# New Slide\n\nAdd content here"
+        markdownDocument += newSlide
+        // Set the selection to the new slide
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            selectedSlideIndex = slides.count - 1
+        }
+    }
+    
+    private func addTitleAndURLSlide() {
+        let newSlide = "\n\n---\n\n# Web Demo\nhttps://example.com"
         markdownDocument += newSlide
         // Set the selection to the new slide
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

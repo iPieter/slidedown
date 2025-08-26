@@ -71,6 +71,7 @@ struct SidebarView: View {
             List(selection: $selectedSlideIndex) {
                 ForEach(Array(slides.enumerated()), id: \.offset) { index, slideContent in
                     SlideListItemView(
+                        isSelected: index == self.selectedSlideIndex,
                         index: index, 
                         slideContent: slideContent, 
                         selectedTheme: selectedTheme, 
@@ -145,6 +146,7 @@ struct SidebarView: View {
 }
 
 struct SlideListItemView: View {
+    let isSelected: Bool
     let index: Int
     let slideContent: String
     let selectedTheme: SlideTheme
@@ -163,9 +165,9 @@ struct SlideListItemView: View {
             HStack(spacing: 8) {
                 Text("\(index + 1)")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(isSelected ? .white : .secondary)
                     .frame(width: 24, height: 18)
-                    .background(Color(.controlBackgroundColor))
+                    .background(isSelected ? Color.accentColor.opacity(0.3) : Color(.controlBackgroundColor))
                     .cornerRadius(4)
                 
                 if let title = slideContent.firstMarkdownHeading(level: 1) {
@@ -202,8 +204,6 @@ struct SlideListItemView: View {
                 logoImage: logoImage,
                 showFooter: showFooter
             )
-            .frame(maxWidth: .infinity)
-            .aspectRatio(16/9, contentMode: .fit)
             .cornerRadius(6)
             .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         }

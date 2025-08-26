@@ -1,6 +1,7 @@
 import SwiftUI
 import Down
 import Foundation
+import WebKit
 
 // Define slide layout presets
 enum SlideLayout {
@@ -12,6 +13,7 @@ enum SlideLayout {
     case doubleImage   // Two images side by side
     case gridImages    // Multiple images in a grid
     case quote         // Centered quote with attribution
+    case titleAndURL   // Title with a URL that renders in a browser view
 }
 
 // Slide rendering view used for both preview and presentation
@@ -92,6 +94,11 @@ struct SlideRenderView: View {
         // Get body text content without images and handle empty content better
         let textContentWithoutImages = removeImagesFromMarkdown(bodyContent).trimmingCharacters(in: .whitespacesAndNewlines)
         let bodyTextOnly = bodyContent.bodyMarkdownText() // Use the extension method for better text extraction
+        
+        // Check for title + URL slide (should be checked before other layouts)
+        if content.isTitleAndURLSlide() {
+            return .titleAndURL
+        }
         
         // Check for a title-subtitle only slide
         if title != nil && subtitle != nil && 
@@ -178,6 +185,8 @@ struct SlideRenderView: View {
                             gridImagesLayout
                         case .quote:
                             quoteLayout
+                        case .titleAndURL:
+                            titleAndURLLayout
                         case .standard:
                             standardLayout
                         }
@@ -295,14 +304,13 @@ struct SlideRenderView: View {
                         // Process the attributed string to apply custom styling
                         let styledText = applyCustomStyling(to: attributedString)
                         
-                        // Render text content
-                        Text(AttributedString(styledText))
-                            .font(Font.custom(bodyFont.replacingOccurrences(of: " — Template Default", with: ""), 
-                                             size: 60, relativeTo: .body))
-                            .foregroundColor(effectiveBodyColor)
-                            .lineSpacing(16)
-                            .frame(maxWidth: .infinity, alignment: bodyAlignment == .left ? .leading : bodyAlignment == .center ? .center : .trailing)
-                            .textSelection(.enabled)
+                        // Render text content in a VStack to allow it to expand
+                        VStack {
+                            Text(AttributedString(styledText))
+                                .lineSpacing(16)
+                                .frame(maxWidth: .infinity, alignment: bodyAlignment == .left ? .leading : bodyAlignment == .center ? .center : .trailing)
+                                .textSelection(.enabled)
+                        }
                     }
                     
                     // Render images separately using the enhanced ImageContentView
@@ -317,6 +325,7 @@ struct SlideRenderView: View {
                 .padding(.bottom, 80)
             }
             .scrollIndicators(showDecorations ? .visible : .hidden)
+            .layoutPriority(1)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -403,7 +412,7 @@ struct SlideRenderView: View {
                             Image(nsImage: logo)
                                 .resizable()
                                 .scaledToFit()
-                                .frame(height: 80)
+                                .frame(height: 100)
                                 .padding(40)
                         }
                         Spacer()
@@ -537,6 +546,55 @@ struct SlideRenderView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
+    // Title and URL layout
+    private var titleAndURLLayout: some View {
+        VStack(spacing: 0) {
+            // Title section at the top
+            if let title = content.firstMarkdownHeading(level: 1) {
+                Text(title)
+                    .font(Font.custom(titleFont, size: 72, relativeTo: .title).weight(theme.titleFontWeight))
+                    .foregroundColor(effectiveTitleColor)
+                    .lineSpacing(12)
+                    .tracking(-0.5)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 60)
+                    .padding(.bottom, 40)
+                    .padding(.horizontal, 80)
+            }
+            
+            // WebView for the URL
+            if let url = content.extractURLFromTitleAndURLSlide() {
+                WebView(url: url)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 60)
+                    .padding(.bottom, 60)
+                    .onTapGesture {
+                        // Ensure the WebView gets focus when tapped
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            if let window = NSApplication.shared.keyWindow {
+                                // Find the WebView and make it first responder
+                                if let webViews = window.contentView?.findSubviews(ofType: WKWebView.self),
+                                   let webView = webViews.first {
+                                    window.makeFirstResponder(webView)
+                                }
+                            }
+                        }
+                    }
+            } else {
+                // Fallback if URL extraction fails
+                VStack {
+                    Spacer()
+                    Text("Unable to load webpage")
+                        .font(Font.custom(bodyFont, size: 48))
+                        .foregroundColor(effectiveBodyColor.opacity(0.6))
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
     // MARK: - Helper Methods
     
     // Helper to remove first heading
@@ -624,26 +682,32 @@ struct SlideRenderView: View {
         return markdown
     }
     
-    // Apply custom styling to the Down-generated attributed string
     private func applyCustomStyling(to attributedString: NSAttributedString) -> NSAttributedString {
         let mutableAttrString = NSMutableAttributedString(attributedString: attributedString)
         
         // Define the full range of the string
         let fullRange = NSRange(location: 0, length: mutableAttrString.length)
         
-        // Process headings to match the app's style
+        // Apply base body font and color
+        let bodyUIFont = NSFont(name: bodyFont, size: 60) ?? NSFont.systemFont(ofSize: 60)
+        mutableAttrString.addAttributes([
+            .font: bodyUIFont,
+            .foregroundColor: NSColor(effectiveBodyColor)
+        ], range: fullRange)
+        
+        // Find all heading ranges by looking for bold text
         mutableAttrString.enumerateAttribute(.font, in: fullRange, options: []) { value, range, _ in
-            if let font = value as? NSFont {
-                if font.fontDescriptor.symbolicTraits.contains(.bold) {
-                    // This is likely a heading or bold text
-                    if range.length > 10 || range.location == 0 {
-                        // Likely a heading, make it bigger and apply theme styling
-                        let newFont = NSFont(name: titleFont, size: font.pointSize * 1.2) ?? font
-                        mutableAttrString.addAttribute(.font, value: newFont, range: range)
-                        mutableAttrString.addAttribute(.foregroundColor, value: NSColor(effectiveTitleColor), range: range)
-                    }
-                }
+            guard let font = value as? NSFont,
+                  font.fontDescriptor.symbolicTraits.contains(.bold) else {
+                return
             }
+            
+            // Apply heading styling
+            let headingFont = NSFont(name: titleFont, size: 72) ?? font
+            mutableAttrString.addAttributes([
+                .font: headingFont,
+                .foregroundColor: NSColor(effectiveTitleColor)
+            ], range: range)
         }
         
         return mutableAttrString

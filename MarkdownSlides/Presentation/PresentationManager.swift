@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 // State manager class to handle external state changes
 class PresentationStateManager: ObservableObject {
@@ -227,6 +228,23 @@ class PresentationWindowManager {
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard presentationWindow.isKeyWindow else { return event }
             
+            // Check if the first responder is a WebView or its subviews
+            if let firstResponder = presentationWindow.firstResponder {
+                // If the first responder is a WebView or contains a WebView, don't capture navigation keys
+                if self.isWebViewOrContainsWebView(firstResponder) {
+                    // Only capture Escape key for WebViews
+                    switch event.keyCode {
+                    case 53: // Escape key
+                        presentationWindow.close()
+                        onClose()
+                        return nil
+                    default:
+                        return event // Allow all other keys to pass through to WebView
+                    }
+                }
+            }
+            
+            // For non-WebView content, capture navigation keys as usual
             switch event.keyCode {
             case 53: // Escape key
                 presentationWindow.close()
@@ -277,5 +295,37 @@ class PresentationWindowManager {
         presentationWindow = nil
         windowController = nil
         stateManager = nil
+    }
+    
+    // Helper function to check if a view is a WebView or contains a WebView
+    private func isWebViewOrContainsWebView(_ view: NSResponder) -> Bool {
+        // Check if the view itself is a WKWebView
+        if view is WKWebView {
+            return true
+        }
+        
+        // Check if the view is a NSView and contains WKWebView subviews
+        if let nsView = view as? NSView {
+            return containsWebView(nsView)
+        }
+        
+        return false
+    }
+    
+    // Recursive function to check if a view contains a WebView
+    private func containsWebView(_ view: NSView) -> Bool {
+        // Check if this view is a WKWebView
+        if view is WKWebView {
+            return true
+        }
+        
+        // Recursively check subviews
+        for subview in view.subviews {
+            if containsWebView(subview) {
+                return true
+            }
+        }
+        
+        return false
     }
 } 

@@ -36,6 +36,86 @@ extension String {
             .joined(separator: " ")
     }
     
+    /// Extracts URLs from markdown content
+    func extractURLs() -> [URL] {
+        var urls: [URL] = []
+        
+        // Pattern to match markdown links: [text](url)
+        let linkPattern = "\\[(.*?)\\]\\((.*?)\\)"
+        
+        if let regex = try? NSRegularExpression(pattern: linkPattern, options: []) {
+            let nsString = NSString(string: self)
+            let matches = regex.matches(in: self, options: [], range: NSRange(location: 0, length: nsString.length))
+            
+            for match in matches {
+                if match.numberOfRanges >= 3 {
+                    let urlRange = match.range(at: 2)
+                    let urlString = nsString.substring(with: urlRange)
+                    
+                    if let url = URL(string: urlString) {
+                        urls.append(url)
+                    }
+                }
+            }
+        }
+        
+        // Also look for plain URLs in the text
+        let urlPattern = "https?://[^\\s]+"
+        
+        if let regex = try? NSRegularExpression(pattern: urlPattern, options: []) {
+            let nsString = NSString(string: self)
+            let matches = regex.matches(in: self, options: [], range: NSRange(location: 0, length: nsString.length))
+            
+            for match in matches {
+                let urlString = nsString.substring(with: match.range)
+                if let url = URL(string: urlString) {
+                    urls.append(url)
+                }
+            }
+        }
+        
+        return urls
+    }
+    
+    /// Checks if the content is a simple title + URL slide
+    func isTitleAndURLSlide() -> Bool {
+        let title = firstMarkdownHeading(level: 1)
+        let bodyContent = removeFirstHeading(from: self)
+        let urls = bodyContent.extractURLs()
+        
+        // Check if we have a title and exactly one URL, with minimal other content
+        let hasTitle = title != nil && !title!.isEmpty
+        let hasSingleURL = urls.count == 1
+        let minimalOtherContent = bodyContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || 
+                                 bodyContent.trimmingCharacters(in: .whitespacesAndNewlines) == urls.first?.absoluteString
+        
+        return hasTitle && hasSingleURL && minimalOtherContent
+    }
+    
+    /// Extracts the URL from a title + URL slide
+    func extractURLFromTitleAndURLSlide() -> URL? {
+        guard isTitleAndURLSlide() else { return nil }
+        let bodyContent = removeFirstHeading(from: self)
+        return bodyContent.extractURLs().first
+    }
+    
+    /// Helper to remove first heading from content
+    private func removeFirstHeading(from content: String) -> String {
+        let lines = content.components(separatedBy: .newlines)
+        var result: [String] = []
+        var foundFirstHeading = false
+        
+        for line in lines {
+            if !foundFirstHeading && line.hasPrefix("#") {
+                foundFirstHeading = true
+                continue
+            }
+            result.append(line)
+        }
+        
+        return result.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     func extractManimCodeBlocks() -> [(range: Range<String.Index>, code: String)] {
         var results: [(range: Range<String.Index>, code: String)] = []
         
