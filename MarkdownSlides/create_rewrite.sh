@@ -45,7 +45,7 @@ cat > "$SCRIPT_FILE" << 'EOF'
 
 set -e
 
-echo "�� Starting automatic git history rewrite..."
+echo "🚀 Starting automatic git history rewrite..."
 
 # Create backup branch
 echo "📦 Creating backup branch..."
@@ -53,19 +53,31 @@ git branch backup-before-rewrite-$(date +%Y%m%d-%H%M%S)
 
 # Create a temporary file with the new commit messages
 cat > /tmp/new_commit_messages.txt << 'COMMIT_MSGS'
-feat: Initialize SwiftUI-based Markdown presentation app with basic structure
-feat: Add image support with external URL handling and markdown syntax
-feat: Implement slide templates and reusable content patterns
-feat: Add customizable footer with presentation title and logo support
-fix: Resolve font rendering issues and improve text clarity
-feat: Enhance title slides with better typography and layout options
-feat: Add navigation buttons for slide navigation and presentation controls
-feat: Implement scalable slide system with responsive layouts
-feat: Add theme persistence and custom theme saving functionality
-feat: Implement comprehensive font customization with system font support
-feat: Add basic syntax highlighting for markdown elements
-feat: Improve syntax highlighting with better color schemes and element detection
-feat: Standardize slide separators using markdown horizontal rules (---)
+feat: Initialize SwiftUI-based Markdown presentation app with basic project structure
+
+feat: Add comprehensive image support with external URL handling and markdown syntax
+
+feat: Implement slide templates system with reusable content patterns and layouts
+
+feat: Add customizable footer with presentation title, logo support, and branding options
+
+fix: Resolve font rendering issues and improve text clarity across all slide types
+
+feat: Enhance title slides with improved typography, layout options, and visual hierarchy
+
+feat: Add navigation buttons for intuitive slide navigation and presentation controls
+
+feat: Implement scalable slide system with responsive layouts and adaptive sizing
+
+feat: Add theme persistence and custom theme saving functionality with user preferences
+
+feat: Implement comprehensive font customization with system font support and fallbacks
+
+feat: Add basic syntax highlighting for markdown elements and code blocks
+
+feat: Improve syntax highlighting with enhanced color schemes and better element detection
+
+feat: Standardize slide separators using markdown horizontal rules (---) for consistency
 COMMIT_MSGS
 
 # Get all commits in reverse order
@@ -95,8 +107,8 @@ while IFS= read -r commit_hash; do
             fi
         " -- $commit_hash^..$commit_hash
         
-        # Update commit date to be within last week
-        days_ago=$((7 - msg_index))
+        # Update commit date to be within last week (spread across 7 days)
+        days_ago=$((6 - msg_index))
         
         if [[ "$OSTYPE" == "darwin"* ]]; then
             # macOS date command
@@ -106,7 +118,7 @@ while IFS= read -r commit_hash; do
             commit_date=$(date -d "$days_ago days ago" --iso-8601=seconds)
         fi
         
-        echo "�� Setting date to: $commit_date"
+        echo "📅 Setting date to: $commit_date"
         
         git filter-branch --env-filter "
             if [ \$GIT_COMMIT = $commit_hash ]
@@ -133,10 +145,10 @@ echo "📊 Final git log:"
 git log --oneline --graph --decorate -15
 
 echo ""
-echo "�� All done! Your git history has been rewritten with:"
-echo "   - Better commit messages"
-echo "   - Dates within the last week"
-echo "   - Backup branch created"
+echo "🎉 All done! Your git history has been rewritten with:"
+echo "   - More descriptive and professional commit messages"
+echo "   - Dates spread across the last week (7 days)"
+echo "   - Backup branch created for safety"
 echo ""
 echo "💡 To restore original history: git reset --hard backup-before-rewrite-$(date +%Y%m%d)"
 EOF
@@ -147,8 +159,8 @@ chmod +x "$SCRIPT_FILE"
 print_status "Script created: $SCRIPT_FILE"
 print_status "The script will automatically:"
 echo "  • Create a backup branch"
-echo "  • Rewrite all commit messages to be more descriptive"
-echo "  • Update all commit dates to be within the last week"
+echo "  • Rewrite all commit messages to be more descriptive and professional"
+echo "  • Update all commit dates to be spread across the last week"
 echo "  • Clean up temporary files"
 echo ""
 
